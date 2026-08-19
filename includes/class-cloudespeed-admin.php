@@ -20,6 +20,10 @@ class CloudESpeed_Admin {
         add_action('admin_bar_menu', [__CLASS__, 'register_admin_bar_menu'], 100);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
 
+        // Register custom styles for Admin Bar on BOTH Backend and Frontend
+        add_action('admin_head', [__CLASS__, 'render_admin_custom_styles']);
+        add_action('wp_head', [__CLASS__, 'render_admin_custom_styles']);
+
         // AJAX handlers
         add_action('wp_ajax_cloudespeed_ajax_purge_all', [__CLASS__, 'ajax_purge_all']);
         add_action('wp_ajax_cloudespeed_ajax_purge_url', [__CLASS__, 'ajax_purge_url']);
@@ -47,9 +51,6 @@ class CloudESpeed_Admin {
             $icon_data,
             3
         );
-
-        add_action('admin_head', [__CLASS__, 'render_admin_custom_styles']);
-        add_action('wp_head', [__CLASS__, 'render_admin_custom_styles']);
     }
 
     public static function render_admin_custom_styles() {
@@ -133,11 +134,14 @@ class CloudESpeed_Admin {
         $is_dev_mode = self::is_dev_mode_active();
         $pill_class = $is_dev_mode ? 'ces-pill-dev' : 'ces-pill-live';
         $pill_text = $is_dev_mode ? 'CACHE PAUSED' : 'CACHE ON';
+        $pill_inline_style = $is_dev_mode 
+            ? 'background:#F59E0B !important;color:#0F172A !important;box-shadow:0 0 8px rgba(245,158,11,0.6) !important;' 
+            : 'background:#059669 !important;color:#FFFFFF !important;';
         $purge_all_url = wp_nonce_url(admin_url('admin-post.php?action=cloudespeed_purge_all'), 'cloudespeed_purge_all');
 
         $wp_admin_bar->add_node([
             'id'    => 'cloudespeed-root',
-            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span><span id="ab-cloudespeed-pill" class="ces-topbar-pill ' . $pill_class . '">' . $pill_text . '</span></span>',
+            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span><span id="ab-cloudespeed-pill" class="ces-topbar-pill ' . $pill_class . '" style="display:inline-flex !important;align-items:center !important;justify-content:center !important;font-size:10px !important;font-weight:800 !important;padding:2px 7px !important;border-radius:6px !important;margin-left:6px !important;line-height:1.2 !important;text-transform:uppercase !important;letter-spacing:0.04em !important;' . $pill_inline_style . '">' . $pill_text . '</span></span>',
             'href'  => admin_url('admin.php?page=cloudespeed'),
         ]);
 
