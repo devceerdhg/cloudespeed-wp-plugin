@@ -130,16 +130,16 @@ jQuery(document).ready(function($) {
                     $('#text-devmode-status').css('color', '#D97706').text('Bypassing');
                     $('#devmode-title').text('Development Mode is currently Active');
                     $('#ces-devmode-warning-banner').slideDown(250);
-                    $('#header-devmode-pill').css('display', 'inline-flex').hide().fadeIn(200);
-                    $('#ab-cloudespeed-dev-pill').css('display', 'inline-flex');
+                    $('#header-devmode-pill').removeClass('ces-pill-emerald').addClass('ces-pill-amber').text('⚠️ Disabled').css('display', 'inline-flex').hide().fadeIn(200);
+                    $('#ab-cloudespeed-pill').removeClass('ces-pill-live').addClass('ces-pill-dev').text('Disabled');
                 } else {
                     $btn.data('active', 0).removeClass('ces-btn-danger-light').addClass('ces-btn-amber-light').text('Enable Dev Mode (3h)');
                     $('#devmode-pill, #badge-devmode-status').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Caching On');
                     $('#text-devmode-status').css('color', '#0F172A').text('Live Cache');
                     $('#devmode-title').text('Development Mode is currently Inactive');
                     $('#ces-devmode-warning-banner').slideUp(250);
-                    $('#header-devmode-pill').fadeOut(200);
-                    $('#ab-cloudespeed-dev-pill').hide();
+                    $('#header-devmode-pill').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Active').css('display', 'inline-flex');
+                    $('#ab-cloudespeed-pill').removeClass('ces-pill-dev').addClass('ces-pill-live').text('Active');
                 }
             } else {
                 showToast(res.data.message || 'Failed to toggle Dev Mode', true);

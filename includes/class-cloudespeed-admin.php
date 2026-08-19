@@ -48,22 +48,55 @@ class CloudESpeed_Admin {
             3
         );
 
-        add_action('admin_head', function() {
-            echo '<style>
-                #toplevel_page_cloudespeed .wp-menu-image img {
-                    padding: 7px 0 0 0 !important;
-                    width: 20px !important;
-                    height: 20px !important;
-                    opacity: 0.85;
-                    transition: all 0.2s ease;
-                }
-                #toplevel_page_cloudespeed:hover .wp-menu-image img,
-                #toplevel_page_cloudespeed.wp-has-current-submenu .wp-menu-image img {
-                    opacity: 1 !important;
-                    filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.6));
-                }
-            </style>';
-        });
+        add_action('admin_head', [__CLASS__, 'render_admin_custom_styles']);
+        add_action('wp_head', [__CLASS__, 'render_admin_custom_styles']);
+    }
+
+    public static function render_admin_custom_styles() {
+        if (!is_admin_bar_showing()) {
+            return;
+        }
+        echo '<style>
+            #toplevel_page_cloudespeed .wp-menu-image img {
+                padding: 7px 0 0 0 !important;
+                width: 20px !important;
+                height: 20px !important;
+                opacity: 0.85;
+                transition: all 0.2s ease;
+            }
+            #toplevel_page_cloudespeed:hover .wp-menu-image img,
+            #toplevel_page_cloudespeed.wp-has-current-submenu .wp-menu-image img {
+                opacity: 1 !important;
+                filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.6));
+            }
+            #wp-admin-bar-cloudespeed-root .ab-item {
+                display: flex !important;
+                align-items: center !important;
+            }
+            .ces-topbar-pill {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                font-size: 10px !important;
+                font-weight: 800 !important;
+                padding: 2px 7px !important;
+                border-radius: 6px !important;
+                margin-left: 6px !important;
+                line-height: 1.2 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.04em !important;
+                transition: all 0.2s ease !important;
+            }
+            .ces-pill-live {
+                background: #059669 !important;
+                color: #FFFFFF !important;
+            }
+            .ces-pill-dev {
+                background: #F59E0B !important;
+                color: #0F172A !important;
+                box-shadow: 0 0 8px rgba(245, 158, 11, 0.6) !important;
+            }
+        </style>';
     }
 
     public static function register_settings() {
@@ -82,12 +115,13 @@ class CloudESpeed_Admin {
         }
 
         $is_dev_mode = (get_transient('cloudespeed_dev_mode_active') === 1);
-        $dev_pill_display = $is_dev_mode ? 'inline-flex' : 'none';
+        $pill_class = $is_dev_mode ? 'ces-pill-dev' : 'ces-pill-live';
+        $pill_text = $is_dev_mode ? 'Disabled' : 'Active';
         $purge_all_url = wp_nonce_url(admin_url('admin-post.php?action=cloudespeed_purge_all'), 'cloudespeed_purge_all');
 
         $wp_admin_bar->add_node([
             'id'    => 'cloudespeed-root',
-            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span><span id="ab-cloudespeed-dev-pill" style="display:' . $dev_pill_display . ';align-items:center;background:#F59E0B;color:#FFFFFF;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;margin-left:4px;line-height:1.2;text-transform:uppercase;letter-spacing:0.04em;box-shadow:0 0 8px rgba(245,158,11,0.6);">Disabled</span></span>',
+            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span><span id="ab-cloudespeed-pill" class="ces-topbar-pill ' . $pill_class . '">' . $pill_text . '</span></span>',
             'href'  => admin_url('admin.php?page=cloudespeed'),
         ]);
 
