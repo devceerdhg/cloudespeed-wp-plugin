@@ -10,6 +10,10 @@ if (!defined('ABSPATH')) {
 }
 ?>
 
+<?php
+$is_dev_active = !empty($status_data['dev_mode']) || (get_transient('cloudespeed_dev_mode_active') === 1);
+?>
+
 <div class="ces-unified-wrap">
     
     <!-- Clean Minimal Header Card -->
@@ -17,7 +21,7 @@ if (!defined('ABSPATH')) {
         <div style="display: flex; align-items: center; gap: 12px;">
             <h1 class="ces-page-title" style="margin: 0;">
                 <span>Cloud E Speed</span>
-                <span class="ces-pill ces-pill-amber" id="header-devmode-pill" style="<?php echo empty($status_data['dev_mode']) ? 'display:none;' : 'display:inline-flex;'; ?>; font-size: 11px; padding: 3px 8px; border-radius: 6px;">
+                <span class="ces-pill ces-pill-amber" id="header-devmode-pill" style="<?php echo !$is_dev_active ? 'display:none;' : 'display:inline-flex;'; ?>; font-size: 11px; padding: 3px 8px; border-radius: 6px;">
                     ⚠️ Disabled
                 </span>
             </h1>
@@ -31,7 +35,7 @@ if (!defined('ABSPATH')) {
     </div>
 
     <!-- Minimal Dev Mode Warning Alert Banner -->
-    <div id="ces-devmode-warning-banner" class="ces-devmode-alert-banner" style="<?php echo empty($status_data['dev_mode']) ? 'display:none;' : 'display:flex;'; ?>">
+    <div id="ces-devmode-warning-banner" class="ces-devmode-alert-banner" style="<?php echo !$is_dev_active ? 'display:none;' : 'display:flex;'; ?>">
         <div style="display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 18px;">⚠️</span>
             <strong style="color: #92400E; font-size: 13px;">Development Mode Active — FastCGI Cache is temporarily bypassed.</strong>

@@ -81,11 +81,13 @@ class CloudESpeed_Admin {
             return;
         }
 
+        $is_dev_mode = (get_transient('cloudespeed_dev_mode_active') === 1);
+        $dev_pill_display = $is_dev_mode ? 'inline-flex' : 'none';
         $purge_all_url = wp_nonce_url(admin_url('admin-post.php?action=cloudespeed_purge_all'), 'cloudespeed_purge_all');
 
         $wp_admin_bar->add_node([
             'id'    => 'cloudespeed-root',
-            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span></span>',
+            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span><span id="ab-cloudespeed-dev-pill" style="display:' . $dev_pill_display . ';align-items:center;background:#F59E0B;color:#FFFFFF;font-size:10px;font-weight:800;padding:2px 7px;border-radius:10px;margin-left:4px;line-height:1.2;text-transform:uppercase;letter-spacing:0.04em;box-shadow:0 0 8px rgba(245,158,11,0.6);">Disabled</span></span>',
             'href'  => admin_url('admin.php?page=cloudespeed'),
         ]);
 
@@ -155,6 +157,13 @@ class CloudESpeed_Admin {
             $res = CloudESpeed_API::get_status();
             if (!is_wp_error($res)) {
                 $status_data = $res;
+                if (isset($status_data['dev_mode'])) {
+                    if (!empty($status_data['dev_mode'])) {
+                        set_transient('cloudespeed_dev_mode_active', 1, 3 * HOUR_IN_SECONDS);
+                    } else {
+                        delete_transient('cloudespeed_dev_mode_active');
+                    }
+                }
             }
         }
 
@@ -208,6 +217,13 @@ class CloudESpeed_Admin {
         if (is_wp_error($res)) {
             wp_send_json_error(['message' => $res->get_error_message()]);
         }
+
+        if ($enable) {
+            set_transient('cloudespeed_dev_mode_active', 1, $hours * HOUR_IN_SECONDS);
+        } else {
+            delete_transient('cloudespeed_dev_mode_active');
+        }
+
         $msg = $enable ? "Development Mode activated (bypassing cache for {$hours} hours)" : "Development Mode disabled (FastCGI caching restored)";
         CloudESpeed_Purger::log_event($msg);
         wp_send_json_success(['message' => $msg, 'dev_mode' => $enable]);
