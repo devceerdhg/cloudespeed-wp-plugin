@@ -126,20 +126,22 @@ jQuery(document).ready(function($) {
                 showToast(res.data.message, false);
                 if (targetState) {
                     $btn.data('active', 1).removeClass('ces-btn-amber-light').addClass('ces-btn-danger-light').text('Turn Off Dev Mode');
+                    $('#badge-cache-engine').removeClass('ces-pill-emerald').addClass('ces-pill-amber').text('● Bypassed');
                     $('#devmode-pill, #badge-devmode-status').removeClass('ces-pill-emerald').addClass('ces-pill-amber').text('● Bypass Active');
-                    $('#text-devmode-status').css('color', '#D97706').text('Bypassing');
+                    $('#text-devmode-status').css('color', '#D97706').text('Bypass (3h)');
                     $('#devmode-title').text('Development Mode is currently Active');
                     $('#ces-devmode-warning-banner').slideDown(250);
-                    $('#header-devmode-pill').removeClass('ces-pill-emerald').addClass('ces-pill-amber').text('⚠️ Disabled').css('display', 'inline-flex').hide().fadeIn(200);
-                    $('#ab-cloudespeed-pill').removeClass('ces-pill-live').addClass('ces-pill-dev').text('Disabled');
+                    $('#header-devmode-pill').removeClass('ces-pill-emerald').addClass('ces-pill-amber').text('⚠️ Dev Mode Active').css('display', 'inline-flex').hide().fadeIn(200);
+                    $('#ab-cloudespeed-pill').removeClass('ces-pill-live').addClass('ces-pill-dev').text('DEV MODE');
                 } else {
-                    $btn.data('active', 0).removeClass('ces-btn-danger-light').addClass('ces-btn-amber-light').text('Enable Dev Mode (3h)');
-                    $('#devmode-pill, #badge-devmode-status').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Caching On');
+                    $btn.data('active', 0).removeClass('ces-btn-danger-light').addClass('ces-btn-amber-light').text('🛠️ Enable Dev Mode (3h)');
+                    $('#badge-cache-engine').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Accelerating');
+                    $('#devmode-pill, #badge-devmode-status').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Inactive');
                     $('#text-devmode-status').css('color', '#0F172A').text('Live Cache');
                     $('#devmode-title').text('Development Mode is currently Inactive');
                     $('#ces-devmode-warning-banner').slideUp(250);
-                    $('#header-devmode-pill').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Active').css('display', 'inline-flex');
-                    $('#ab-cloudespeed-pill').removeClass('ces-pill-dev').addClass('ces-pill-live').text('Active');
+                    $('#header-devmode-pill').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Live Cache').css('display', 'inline-flex');
+                    $('#ab-cloudespeed-pill').removeClass('ces-pill-dev').addClass('ces-pill-live').text('LIVE');
                 }
             } else {
                 showToast(res.data.message || 'Failed to toggle Dev Mode', true);

@@ -116,7 +116,7 @@ class CloudESpeed_Admin {
 
         $is_dev_mode = (get_transient('cloudespeed_dev_mode_active') === 1);
         $pill_class = $is_dev_mode ? 'ces-pill-dev' : 'ces-pill-live';
-        $pill_text = $is_dev_mode ? 'Disabled' : 'Active';
+        $pill_text = $is_dev_mode ? 'DEV MODE' : 'LIVE';
         $purge_all_url = wp_nonce_url(admin_url('admin-post.php?action=cloudespeed_purge_all'), 'cloudespeed_purge_all');
 
         $wp_admin_bar->add_node([

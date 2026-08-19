@@ -16,8 +16,8 @@ if (!defined('ABSPATH')) {
     <div class="ces-metric-card">
         <div class="ces-metric-header">
             <span class="ces-metric-label">Cache Engine</span>
-            <span class="ces-pill <?php echo ($status_data && ($status_data['cache_enabled'] ?? true)) ? 'ces-pill-emerald' : 'ces-pill-amber'; ?>">
-                <?php echo ($status_data && ($status_data['cache_enabled'] ?? true)) ? '● Active' : '● Standby'; ?>
+            <span class="ces-pill <?php echo (!empty($status_data['dev_mode'])) ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-cache-engine">
+                <?php echo (!empty($status_data['dev_mode'])) ? '● Bypassed' : '● Accelerating'; ?>
             </span>
         </div>
         <div class="ces-metric-value" style="color: #059669;">Nginx FastCGI</div>
@@ -35,13 +35,13 @@ if (!defined('ABSPATH')) {
 
     <div class="ces-metric-card">
         <div class="ces-metric-header">
-            <span class="ces-metric-label">Dev Mode</span>
+            <span class="ces-metric-label">Development Mode</span>
             <span class="ces-pill <?php echo (!empty($status_data['dev_mode'])) ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-devmode-status">
-                <?php echo (!empty($status_data['dev_mode'])) ? '● Bypass' : '● Off'; ?>
+                <?php echo (!empty($status_data['dev_mode'])) ? '● Bypass Active' : '● Inactive'; ?>
             </span>
         </div>
         <div class="ces-metric-value" id="text-devmode-status" style="color: <?php echo (!empty($status_data['dev_mode'])) ? '#D97706' : '#0F172A'; ?>;">
-            <?php echo (!empty($status_data['dev_mode'])) ? 'Active' : 'Disabled'; ?>
+            <?php echo (!empty($status_data['dev_mode'])) ? 'Bypass (3h)' : 'Live Cache'; ?>
         </div>
     </div>
 

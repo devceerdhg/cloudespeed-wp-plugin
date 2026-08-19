@@ -22,7 +22,7 @@ $is_dev_active = !empty($status_data['dev_mode']) || (get_transient('cloudespeed
             <h1 class="ces-page-title" style="margin: 0;">
                 <span>Cloud E Speed</span>
                 <span class="ces-pill <?php echo $is_dev_active ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="header-devmode-pill" style="font-size: 11px; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.02em;">
-                    <?php echo $is_dev_active ? '⚠️ Disabled' : '● Active'; ?>
+                    <?php echo $is_dev_active ? '⚠️ Dev Mode Active' : '● Live Cache'; ?>
                 </span>
             </h1>
             <span class="ces-brand-tag" style="margin: 0;">FastCGI Accelerator</span>
