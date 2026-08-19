@@ -109,14 +109,30 @@ class CloudESpeed_Admin {
         register_setting('cloudespeed_settings', 'cloudespeed_ssl_verify', 'sanitize_text_field');
     }
 
+    public static function is_dev_mode_active() {
+        $val = get_transient('cloudespeed_dev_mode_active');
+        if ($val === false) {
+            if (CloudESpeed_Discovery::is_configured()) {
+                $res = CloudESpeed_API::get_status();
+                if (!is_wp_error($res) && isset($res['dev_mode'])) {
+                    $is_dev = !empty($res['dev_mode']) ? 1 : 0;
+                    set_transient('cloudespeed_dev_mode_active', $is_dev, 30 * MINUTE_IN_SECONDS);
+                    return ($is_dev === 1);
+                }
+            }
+            return false;
+        }
+        return ((int)$val === 1);
+    }
+
     public static function register_admin_bar_menu($wp_admin_bar) {
         if (!current_user_can('manage_options')) {
             return;
         }
 
-        $is_dev_mode = (get_transient('cloudespeed_dev_mode_active') === 1);
+        $is_dev_mode = self::is_dev_mode_active();
         $pill_class = $is_dev_mode ? 'ces-pill-dev' : 'ces-pill-live';
-        $pill_text = $is_dev_mode ? 'DEV MODE' : 'LIVE';
+        $pill_text = $is_dev_mode ? 'CACHE PAUSED' : 'CACHE ON';
         $purge_all_url = wp_nonce_url(admin_url('admin-post.php?action=cloudespeed_purge_all'), 'cloudespeed_purge_all');
 
         $wp_admin_bar->add_node([
@@ -192,11 +208,8 @@ class CloudESpeed_Admin {
             if (!is_wp_error($res)) {
                 $status_data = $res;
                 if (isset($status_data['dev_mode'])) {
-                    if (!empty($status_data['dev_mode'])) {
-                        set_transient('cloudespeed_dev_mode_active', 1, 3 * HOUR_IN_SECONDS);
-                    } else {
-                        delete_transient('cloudespeed_dev_mode_active');
-                    }
+                    $is_dev = !empty($status_data['dev_mode']) ? 1 : 0;
+                    set_transient('cloudespeed_dev_mode_active', $is_dev, 3 * HOUR_IN_SECONDS);
                 }
             }
         }
@@ -255,7 +268,7 @@ class CloudESpeed_Admin {
         if ($enable) {
             set_transient('cloudespeed_dev_mode_active', 1, $hours * HOUR_IN_SECONDS);
         } else {
-            delete_transient('cloudespeed_dev_mode_active');
+            set_transient('cloudespeed_dev_mode_active', 0, 3 * HOUR_IN_SECONDS);
         }
 
         $msg = $enable ? "Development Mode activated (bypassing cache for {$hours} hours)" : "Development Mode disabled (FastCGI caching restored)";

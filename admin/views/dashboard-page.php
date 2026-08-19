@@ -11,7 +11,7 @@ if (!defined('ABSPATH')) {
 ?>
 
 <?php
-$is_dev_active = !empty($status_data['dev_mode']) || (get_transient('cloudespeed_dev_mode_active') === 1);
+$is_dev_active = CloudESpeed_Admin::is_dev_mode_active();
 ?>
 
 <div class="ces-unified-wrap">
@@ -22,7 +22,7 @@ $is_dev_active = !empty($status_data['dev_mode']) || (get_transient('cloudespeed
             <h1 class="ces-page-title" style="margin: 0;">
                 <span>Cloud E Speed</span>
                 <span class="ces-pill <?php echo $is_dev_active ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="header-devmode-pill" style="font-size: 11px; padding: 3px 8px; border-radius: 6px; letter-spacing: 0.02em;">
-                    <?php echo $is_dev_active ? '⚠️ Dev Mode Active' : '● Live Cache'; ?>
+                    <?php echo $is_dev_active ? '⚠️ Cache Paused (Dev Mode)' : '● Cache Enabled'; ?>
                 </span>
             </h1>
             <span class="ces-brand-tag" style="margin: 0;">FastCGI Accelerator</span>
@@ -38,11 +38,11 @@ $is_dev_active = !empty($status_data['dev_mode']) || (get_transient('cloudespeed
     <div id="ces-devmode-warning-banner" class="ces-devmode-alert-banner" style="<?php echo !$is_dev_active ? 'display:none;' : 'display:flex;'; ?>">
         <div style="display: flex; align-items: center; gap: 10px;">
             <span style="font-size: 18px;">⚠️</span>
-            <strong style="color: #92400E; font-size: 13px;">Development Mode Active — FastCGI Cache is temporarily bypassed.</strong>
+            <strong style="color: #92400E; font-size: 13px;">FastCGI Cache is Paused (Development Mode Active) — visitors see live site.</strong>
         </div>
         <div>
-            <button type="button" class="ces-button ces-btn-danger-light" id="btn-quick-disable-devmode" style="padding: 6px 14px; font-size: 12px;">
-                Turn Off Now
+            <button type="button" class="ces-button ces-btn-blue" id="btn-quick-disable-devmode" style="padding: 6px 14px; font-size: 12px;">
+                ▶️ Resume Caching
             </button>
         </div>
     </div>

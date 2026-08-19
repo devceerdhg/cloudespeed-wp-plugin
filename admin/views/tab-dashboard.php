@@ -8,6 +8,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
+$is_dev_on = CloudESpeed_Admin::is_dev_mode_active();
 ?>
 
 <!-- Minimal Metrics Bar -->
@@ -16,8 +17,8 @@ if (!defined('ABSPATH')) {
     <div class="ces-metric-card">
         <div class="ces-metric-header">
             <span class="ces-metric-label">Cache Engine</span>
-            <span class="ces-pill <?php echo (!empty($status_data['dev_mode'])) ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-cache-engine">
-                <?php echo (!empty($status_data['dev_mode'])) ? '● Bypassed' : '● Accelerating'; ?>
+            <span class="ces-pill <?php echo $is_dev_on ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-cache-engine">
+                <?php echo $is_dev_on ? '● Bypassed (Live Site)' : '● Accelerating (Cached)'; ?>
             </span>
         </div>
         <div class="ces-metric-value" style="color: #059669;">Nginx FastCGI</div>
@@ -36,12 +37,12 @@ if (!defined('ABSPATH')) {
     <div class="ces-metric-card">
         <div class="ces-metric-header">
             <span class="ces-metric-label">Development Mode</span>
-            <span class="ces-pill <?php echo (!empty($status_data['dev_mode'])) ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-devmode-status">
-                <?php echo (!empty($status_data['dev_mode'])) ? '● Bypass Active' : '● Inactive'; ?>
+            <span class="ces-pill <?php echo $is_dev_on ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-devmode-status">
+                <?php echo $is_dev_on ? '● Active (3h Bypass)' : '● Inactive (Normal)'; ?>
             </span>
         </div>
-        <div class="ces-metric-value" id="text-devmode-status" style="color: <?php echo (!empty($status_data['dev_mode'])) ? '#D97706' : '#0F172A'; ?>;">
-            <?php echo (!empty($status_data['dev_mode'])) ? 'Bypass (3h)' : 'Live Cache'; ?>
+        <div class="ces-metric-value" id="text-devmode-status" style="color: <?php echo $is_dev_on ? '#D97706' : '#0F172A'; ?>;">
+            <?php echo $is_dev_on ? 'Live Site (Bypass)' : 'Accelerated Cache'; ?>
         </div>
     </div>
 
@@ -68,10 +69,12 @@ if (!defined('ABSPATH')) {
         <!-- Quick Operations Box -->
         <div class="ces-box">
             <div class="ces-box-header">
-                <span>⚡ Cache Operations</span>
+                <span>⚡ Quick Actions</span>
+                <span class="ces-pill ces-pill-cyan">Instant Controls</span>
             </div>
             
-            <div style="display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;">
+            <!-- Primary 3-Button Action Grid -->
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px;">
                 <button type="button" class="ces-button ces-btn-blue" id="btn-purge-all" style="flex: 1; min-width: 180px;">
                     🚀 Purge Entire Cache
                 </button>
@@ -80,8 +83,8 @@ if (!defined('ABSPATH')) {
                     🔄 Flush Object Cache
                 </button>
 
-                <button type="button" class="ces-button <?php echo (!empty($status_data['dev_mode'])) ? 'ces-btn-danger-light' : 'ces-btn-amber-light'; ?>" id="btn-toggle-devmode" data-active="<?php echo (!empty($status_data['dev_mode'])) ? '1' : '0'; ?>" style="flex: 1; min-width: 180px;">
-                    <?php echo (!empty($status_data['dev_mode'])) ? 'Turn Off Dev Mode' : '🛠️ Enable Dev Mode (3h)'; ?>
+                <button type="button" class="ces-button <?php echo $is_dev_on ? 'ces-btn-blue' : 'ces-btn-amber-light'; ?>" id="btn-toggle-devmode" data-active="<?php echo $is_dev_on ? '1' : '0'; ?>" style="flex: 1; min-width: 180px;">
+                    <?php echo $is_dev_on ? '▶️ Resume Caching Now' : '⏸️ Pause Cache / Dev Mode (3h)'; ?>
                 </button>
             </div>
 
@@ -142,22 +145,27 @@ if (!defined('ABSPATH')) {
             <div class="ces-box-header">
                 <span>⚡ Automation Status</span>
             </div>
+            <?php
+            $purge_post = get_option('cloudespeed_purge_on_post', '1') === '1';
+            $purge_woo  = get_option('cloudespeed_purge_on_woo', '1') === '1';
+            $purge_menu = get_option('cloudespeed_purge_on_menu', '1') === '1';
+            ?>
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span style="color: var(--ces-text-muted);">Posts &amp; Pages</span>
-                    <span class="ces-pill ces-pill-emerald">Active</span>
+                    <span class="ces-pill <?php echo $purge_post ? 'ces-pill-emerald' : 'ces-pill-amber'; ?>"><?php echo $purge_post ? 'Active' : 'Disabled'; ?></span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span style="color: var(--ces-text-muted);">Elementor Editor</span>
-                    <span class="ces-pill ces-pill-emerald">Active</span>
+                    <span class="ces-pill <?php echo $purge_post ? 'ces-pill-emerald' : 'ces-pill-amber'; ?>"><?php echo $purge_post ? 'Active' : 'Disabled'; ?></span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span style="color: var(--ces-text-muted);">WooCommerce &amp; Stock</span>
-                    <span class="ces-pill ces-pill-emerald">Active</span>
+                    <span class="ces-pill <?php echo $purge_woo ? 'ces-pill-emerald' : 'ces-pill-amber'; ?>"><?php echo $purge_woo ? 'Active' : 'Disabled'; ?></span>
                 </div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <span style="color: var(--ces-text-muted);">Navigation Menus</span>
-                    <span class="ces-pill ces-pill-emerald">Active</span>
+                    <span class="ces-pill <?php echo $purge_menu ? 'ces-pill-emerald' : 'ces-pill-amber'; ?>"><?php echo $purge_menu ? 'Active' : 'Disabled'; ?></span>
                 </div>
             </div>
             <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ces-border-light);">
