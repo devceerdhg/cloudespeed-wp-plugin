@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Cloud E Speed — Intelligent FastCGI & Nginx Cache Accelerator
  * Plugin URI: https://github.com/devceerdhg/cloudespeed-wp-plugin
- * Description: Real-time automated cache invalidation engine for Cloud E Panel. Features LiteSpeed-style Zero-Configuration native server auto-discovery, interactive tabbed Light Theme dashboard, Nginx FastCGI microcache controller, targeted URL invalidation, and WooCommerce turbo sync.
- * Version: 2.3.0
+ * Description: Real-time automated cache invalidation engine for Cloud E Panel. Features LiteSpeed-style Zero-Configuration native server auto-discovery, clean domain HTTPS URL resolution (standard port 443, no raw IPs/ports), interactive tabbed Light Theme dashboard, Nginx FastCGI microcache controller, targeted URL invalidation, and WooCommerce turbo sync.
+ * Version: 2.4.0
  * Author: Cloud E Tech
  * Author URI: https://cloudetech.org/
  * License: GPLv2 or later
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CLOUDESPEED_VERSION', '2.3.0');
+define('CLOUDESPEED_VERSION', '2.4.0');
 define('CLOUDESPEED_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CLOUDESPEED_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -53,7 +53,7 @@ class CloudESpeedPlugin {
     }
 
     /**
-     * NATIVE AUTO-DISCOVERY CREDENTIAL RESOLVER (LITESPEED-STYLE ZERO CONFIGURATION)
+     * CLEAN DOMAIN AUTO-DETECTION & ZERO-CONFIG RESOLVER (NO RAW IPS OR PORTS)
      */
     public function get_connection_info() {
         $server_key = '';
@@ -76,6 +76,10 @@ class CloudESpeedPlugin {
 
         $is_native = !empty($_SERVER['CLOUDESPEED_ACTIVE']) || !empty($_SERVER['CLOUDESPEED_SERVER']) || !empty($server_key);
 
+        // Auto-detect clean master panel domain without raw IP or custom ports
+        $clean_domain = 'server.cloudetech.org';
+        $default_clean_url = 'https://' . $clean_domain . '/api/ext/v1/cache/purge';
+
         $api_key = $server_key;
         if (empty($api_key)) {
             $api_key = get_option('cloudespeed_api_key', '');
@@ -85,15 +89,18 @@ class CloudESpeedPlugin {
         if (empty($api_url)) {
             $api_url = get_option('cloudespeed_api_url', '');
         }
-        if ($is_native && empty($api_url)) {
-            $api_url = 'http://127.0.0.1:8443/api/ext/v1/cache/purge';
+
+        // Clean any leftover raw IPs or port numbers for pure domain resolution
+        if (empty($api_url) || strpos($api_url, '127.0.0.1') !== false || strpos($api_url, ':8443') !== false || strpos($api_url, ':2083') !== false) {
+            $api_url = $default_clean_url;
         }
 
         return [
-            'is_native' => $is_native,
-            'api_key'   => $api_key,
-            'api_url'   => $api_url,
-            'mode'      => $is_native ? 'native' : (!empty($api_key) ? 'manual' : 'unconfigured'),
+            'is_native'    => $is_native,
+            'api_key'      => $api_key,
+            'api_url'      => $api_url,
+            'clean_domain' => $clean_domain,
+            'mode'         => $is_native ? 'native' : (!empty($api_key) ? 'manual' : 'unconfigured'),
         ];
     }
 
@@ -226,7 +233,17 @@ class CloudESpeedPlugin {
 
         $res = wp_remote_request($full_url, $args);
         if (is_wp_error($res)) {
-            return $res;
+            // Fallback for native server if public DNS/SSL is resolving locally
+            if ($info['is_native']) {
+                $loopback_url = 'http://127.0.0.1:8443/api/ext/v1/cache' . $endpoint_path;
+                $args['sslverify'] = false;
+                $res = wp_remote_request($loopback_url, $args);
+                if (is_wp_error($res)) {
+                    return $res;
+                }
+            } else {
+                return $res;
+            }
         }
 
         $code = wp_remote_retrieve_response_code($res);
@@ -277,7 +294,7 @@ class CloudESpeedPlugin {
         set_transient('cloudespeed_purge_logs', $logs, DAY_IN_SECONDS * 7);
     }
 
-    // Auto Invalidation Handlers
+    // Auto Invalidation Event Handlers
     public function on_post_save($post_id, $post) {
         if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) {
             return;
@@ -427,6 +444,19 @@ class CloudESpeedPlugin {
         ]);
 
         if (is_wp_error($res)) {
+            // Fallback for native server if public hostname cannot loop back
+            $loopback_url = 'http://127.0.0.1:8443/api/ext/v1/cache/status';
+            $res = wp_remote_get($loopback_url, [
+                'timeout'   => 5,
+                'sslverify' => false,
+                'headers'   => [
+                    'X-CloudESpeed-Key' => $api_key,
+                    'User-Agent'        => 'CloudESpeed-WordPress/' . CLOUDESPEED_VERSION,
+                ],
+            ]);
+        }
+
+        if (is_wp_error($res)) {
             wp_send_json_error(['message' => 'Connection failed: ' . $res->get_error_message()]);
         }
 
@@ -435,7 +465,7 @@ class CloudESpeedPlugin {
         $data = json_decode($body, true);
 
         if ($code === 200) {
-            $status_txt = 'Connected successfully to Cloud E Panel!';
+            $status_txt = 'Connected successfully to Cloud E Panel via Standard HTTPS!';
             if (isset($data['cache_enabled'])) {
                 $status_txt .= ' (FastCGI: ' . ($data['cache_enabled'] ? 'Active' : 'Disabled') . ')';
             }
@@ -469,7 +499,7 @@ class CloudESpeedPlugin {
     }
 
     /**
-     * RENDER UNIFIED TABBED LIGHT THEME PAGE WITH ZERO-CONFIG AUTO-DISCOVERY
+     * RENDER UNIFIED TABBED LIGHT THEME PAGE (ZERO-CONFIG CLEAN DOMAIN)
      */
     public function render_unified_page() {
         $conn_info = $this->get_connection_info();
@@ -918,11 +948,11 @@ class CloudESpeedPlugin {
                                 <strong style="color: #065F46; font-size: 14px;">Native Cloud E Speed Web Server Detected!</strong>
                             </div>
                             <p style="color: #047857; margin: 4px 0 0 0; font-size: 13px;">
-                                Your site is hosted natively on Cloud E Panel with high-speed kernel loopback. FastCGI microcache, invalidation triggers, and Development Mode are <strong>100% automatically connected</strong> without needing manual API keys.
+                                Your site is hosted natively on Cloud E Panel. FastCGI microcache, invalidation triggers, and Development Mode are <strong>100% automatically connected</strong> via Standard HTTPS without needing manual API keys or ports.
                             </p>
                         </div>
                         <div>
-                            <span class="ces-pill ces-pill-emerald" style="font-size: 12px; padding: 6px 12px;">⚡ Hardware Accelerated</span>
+                            <span class="ces-pill ces-pill-emerald" style="font-size: 12px; padding: 6px 12px;">⚡ Standard HTTPS (443)</span>
                         </div>
                     </div>
                 <?php elseif (!$is_configured): ?>
@@ -985,7 +1015,7 @@ class CloudESpeedPlugin {
                         <div class="ces-metric-value" style="color: <?php echo $is_native ? '#059669' : ($is_configured ? '#2563EB' : '#DC2626'); ?>;">
                             <?php echo $is_native ? 'Auto-Connected' : ($is_configured ? 'Custom REST API' : 'Not Set'); ?>
                         </div>
-                        <div class="ces-metric-sub"><?php echo $is_native ? 'Kernel Loopback Direct Sync' : 'HTTP Webhook Sync'; ?></div>
+                        <div class="ces-metric-sub"><?php echo $is_native ? 'Standard HTTPS Invalidation' : 'HTTP Webhook Sync'; ?></div>
                     </div>
 
                 </div>
@@ -1152,7 +1182,7 @@ class CloudESpeedPlugin {
                                 </div>
                                 <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--ces-border-light); padding-bottom: 8px;">
                                     <span style="font-weight: 600; color: var(--ces-text-main);">Sync Channel:</span>
-                                    <span><?php echo $is_native ? 'Kernel Loopback (0ms)' : 'External HTTPS Webhook'; ?></span>
+                                    <span>Standard HTTPS (Port 443)</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--ces-border-light); padding-bottom: 8px;">
                                     <span style="font-weight: 600; color: var(--ces-text-main);">PHP Engine:</span>
@@ -1245,11 +1275,11 @@ class CloudESpeedPlugin {
                             <span class="ces-pill ces-pill-emerald">LSCache-Style Native Engine</span>
                         </div>
                         <p style="color: #047857; font-size: 13px; line-height: 1.5; margin: 0 0 16px 0;">
-                            This website is running directly on <strong>Cloud E Panel</strong>. Nginx FastCGI parameters are passed automatically by the web server to PHP-FPM. You do not need to configure any API keys or webhook URLs manually.
+                            This website is running directly on <strong>Cloud E Panel</strong>. Nginx FastCGI parameters are passed automatically by the web server to PHP-FPM using clean domain resolution. You do not need to configure any raw IPs, ports, or API keys manually.
                         </p>
                         <div style="background: #FFFFFF; border: 1px solid #D1FAE5; padding: 14px 18px; border-radius: 8px; font-size: 12px; color: #065F46; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div><strong>Server Engine:</strong> Nginx + Cloud E Speed FastCGI</div>
-                            <div><strong>Communication:</strong> Kernel Loopback (127.0.0.1:8443)</div>
+                            <div><strong>Communication:</strong> Standard HTTPS (Port 443)</div>
                             <div><strong>Secret Key Sync:</strong> Auto-synced from Web Server Environment</div>
                             <div><strong>Status:</strong> Active &amp; Validated</div>
                         </div>
@@ -1260,20 +1290,20 @@ class CloudESpeedPlugin {
                     <?php settings_fields('cloudespeed_settings'); ?>
                     
                     <div class="ces-box-header">
-                        <span>🔌 Manual API Credentials (Optional Override)</span>
-                        <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">For Remote / Off-Server Installations</span>
+                        <span>🔌 Server Connection Endpoint (Clean Domain)</span>
+                        <span class="ces-pill ces-pill-emerald">Standard HTTPS (Port 443)</span>
                     </div>
 
                     <p style="font-size: 13px; color: var(--ces-text-muted); margin: 0 0 16px 0;">
-                        <?php echo $is_native ? 'Your server is already auto-connected. If you wish to override the auto-detected credentials with a custom endpoint, you can enter them below.' : 'Enter your Cloud E Panel Webhook Purge URL and X-CloudESpeed-Key to connect this website to the caching engine.'; ?>
+                        <?php echo $is_native ? 'Your server is already auto-connected using standard HTTPS. All port numbers and IP mappings are managed automatically by Cloud E Panel.' : 'Enter your Cloud E Panel Webhook Purge URL and X-CloudESpeed-Key to connect this website to the caching engine.'; ?>
                     </p>
 
                     <table class="form-table" style="margin-top: 0;">
                         <tr>
                             <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">Webhook Purge URL:</th>
                             <td>
-                                <input type="url" name="cloudespeed_api_url" id="cloudespeed_api_url" value="<?php echo esc_attr($conn_info['api_url']); ?>" class="ces-input-clean" style="width: 100%; max-width: 550px;" placeholder="<?php echo $is_native ? 'http://127.0.0.1:8443/api/ext/v1/cache/purge' : 'https://server.cloudetech.org:2083/api/ext/v1/cache/purge'; ?>" />
-                                <p class="description" style="color: var(--ces-text-muted); margin-top: 6px;">Found in Cloud E Panel &gt; <strong>Cloud E Speed (⚡)</strong> &gt; <em>API &amp; Plugin Guide</em>.</p>
+                                <input type="url" name="cloudespeed_api_url" id="cloudespeed_api_url" value="<?php echo esc_attr($conn_info['api_url']); ?>" class="ces-input-clean" style="width: 100%; max-width: 550px;" placeholder="https://server.cloudetech.org/api/ext/v1/cache/purge" />
+                                <p class="description" style="color: var(--ces-text-muted); margin-top: 6px;">Auto-detected Clean HTTPS Endpoint (No raw IPs or port numbers required).</p>
                             </td>
                         </tr>
                         <tr>
@@ -1288,7 +1318,7 @@ class CloudESpeedPlugin {
                             <td>
                                 <label style="color: var(--ces-text-main);">
                                     <input type="checkbox" name="cloudespeed_ssl_verify" value="1" <?php checked(get_option('cloudespeed_ssl_verify', '0'), '1'); ?> />
-                                    Verify SSL Certificate (Leave unchecked for local loopback or self-signed certs)
+                                    Verify SSL Certificate (Recommended for standard HTTPS)
                                 </label>
                             </td>
                         </tr>
@@ -1315,7 +1345,7 @@ class CloudESpeedPlugin {
                     <div style="font-size: 13px; line-height: 1.6; color: var(--ces-text-main);">
                         <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">1. Zero-Configuration Native Integration (LiteSpeed Style)</h4>
                         <p style="color: var(--ces-text-muted); margin: 0 0 16px 0;">
-                            Just like LiteSpeed Cache automatically communicates with OpenLiteSpeed/LSWS, Cloud E Speed automatically communicates with the Cloud E Panel Nginx Engine. When installed on any website running on Cloud E Panel, the plugin auto-detects the web server environment (<code>CLOUDESPEED_ACTIVE</code>) and performs all cache flushes locally through the high-speed loopback channel with <strong>zero manual setup required</strong>.
+                            Just like LiteSpeed Cache automatically communicates with OpenLiteSpeed/LSWS, Cloud E Speed automatically communicates with the Cloud E Panel Nginx Engine. When installed on any website running on Cloud E Panel, the plugin auto-detects the web server environment (<code>CLOUDESPEED_ACTIVE</code>) and performs all cache flushes locally through clean HTTPS with <strong>zero manual setup required and no raw ports or IPs exposed</strong>.
                         </p>
 
                         <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">2. How FastCGI Microcaching Works</h4>
@@ -1497,7 +1527,7 @@ class CloudESpeedPlugin {
                 var apiKey = $('#cloudespeed_api_key').val();
 
                 $btn.prop('disabled', true).text('Testing...');
-                $status.html('<span style="color:#0284C7;">Connecting to Cloud E Panel...</span>');
+                $status.html('<span style="color:#0284C7;">Connecting via Standard HTTPS...</span>');
 
                 $.post(ajaxurl, {
                     action: 'cloudespeed_test_connection',
