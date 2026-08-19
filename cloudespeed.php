@@ -140,15 +140,37 @@ class CloudESpeedPlugin {
     }
 
     public function register_admin_menu() {
+        // Sleek custom brand SVG icon for Cloud E Speed (Cloud + Electric Flash)
+        $icon_svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#A7AAAD"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#0284C7"/></svg>';
+        $icon_data = 'data:image/svg+xml;base64,' . base64_encode($icon_svg);
+
         add_menu_page(
             'Cloud E Speed Accelerator',
-            'Cloud E Speed ⚡',
+            'Cloud E Speed',
             'manage_options',
             'cloudespeed',
             [$this, 'render_unified_page'],
-            'dashicons-performance',
+            $icon_data,
             3
         );
+
+        // Styling for crisp SVG rendering in admin sidebar
+        add_action('admin_head', function() {
+            echo '<style>
+                #toplevel_page_cloudespeed .wp-menu-image img {
+                    padding: 7px 0 0 0 !important;
+                    width: 20px !important;
+                    height: 20px !important;
+                    opacity: 0.85;
+                    transition: all 0.2s ease;
+                }
+                #toplevel_page_cloudespeed:hover .wp-menu-image img,
+                #toplevel_page_cloudespeed.wp-has-current-submenu .wp-menu-image img {
+                    opacity: 1 !important;
+                    filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.6));
+                }
+            </style>';
+        });
     }
 
     public function register_settings() {
@@ -170,7 +192,7 @@ class CloudESpeedPlugin {
 
         $wp_admin_bar->add_node([
             'id'    => 'cloudespeed-root',
-            'title' => '<span style="color:#0284C7;font-weight:700;">⚡ Cloud E Speed</span>',
+            'title' => '<span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;"><svg style="width:15px;height:15px;margin-top:-2px;" viewBox="0 0 24 24" fill="none"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z" fill="#94A3B8"/><path d="M12.5 8L8 14h4l-1 5 6-7h-4.5l1-4z" fill="#38BDF8"/></svg><span style="color:#F1F5F9;">Cloud E Speed</span></span>',
             'href'  => admin_url('admin.php?page=cloudespeed'),
         ]);
 
