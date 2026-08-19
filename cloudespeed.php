@@ -2,8 +2,8 @@
 /**
  * Plugin Name: Cloud E Speed — Intelligent FastCGI & Nginx Cache Accelerator
  * Plugin URI: https://github.com/devceerdhg/cloudespeed-wp-plugin
- * Description: Real-time automated cache invalidation engine for Cloud E Panel. Includes a full interactive WordPress Dashboard, Nginx FastCGI microcache controller, URL-targeted purging, Development Mode switcher, and WooCommerce turbo sync.
- * Version: 2.0.0
+ * Description: Real-time automated cache invalidation engine for Cloud E Panel. Features a unified modern Light-Theme Dashboard with tabbed controls for Nginx FastCGI microcaching, targeted URL purging, Development Mode switcher, and WooCommerce turbo sync.
+ * Version: 2.2.0
  * Author: Cloud E Tech
  * Author URI: https://cloudetech.org/
  * License: GPLv2 or later
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('CLOUDESPEED_VERSION', '2.0.0');
+define('CLOUDESPEED_VERSION', '2.2.0');
 define('CLOUDESPEED_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('CLOUDESPEED_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -34,7 +34,7 @@ class CloudESpeedPlugin {
         add_action('admin_init', [$this, 'register_settings']);
         add_action('admin_bar_menu', [$this, 'register_admin_bar_menu'], 100);
 
-        // AJAX handlers for Dashboard actions
+        // AJAX handlers for Dashboard & Actions
         add_action('wp_ajax_cloudespeed_ajax_purge_all', [$this, 'ajax_purge_all']);
         add_action('wp_ajax_cloudespeed_ajax_purge_url', [$this, 'ajax_purge_url']);
         add_action('wp_ajax_cloudespeed_ajax_toggle_devmode', [$this, 'ajax_toggle_devmode']);
@@ -42,7 +42,7 @@ class CloudESpeedPlugin {
         add_action('wp_ajax_cloudespeed_test_connection', [$this, 'ajax_test_connection']);
         add_action('wp_ajax_cloudespeed_get_status', [$this, 'ajax_get_status']);
 
-        // Legacy action handlers for nonces
+        // Legacy action handlers
         add_action('admin_post_cloudespeed_purge_all', [$this, 'handle_manual_purge_all']);
         add_action('admin_post_cloudespeed_purge_current', [$this, 'handle_manual_purge_current']);
 
@@ -89,42 +89,15 @@ class CloudESpeedPlugin {
     }
 
     public function register_admin_menu() {
-        // Top-Level Cloud E Speed Dashboard Page
+        // Single clean top-level menu without sub-menu clutter
         add_menu_page(
-            'Cloud E Speed Dashboard',
+            'Cloud E Speed Accelerator',
             'Cloud E Speed ⚡',
             'manage_options',
-            'cloudespeed-dashboard',
-            [$this, 'render_dashboard_page'],
+            'cloudespeed',
+            [$this, 'render_unified_page'],
             'dashicons-performance',
             3
-        );
-
-        add_submenu_page(
-            'cloudespeed-dashboard',
-            'Cloud E Speed — Overview Dashboard',
-            '⚡ Dashboard',
-            'manage_options',
-            'cloudespeed-dashboard',
-            [$this, 'render_dashboard_page']
-        );
-
-        add_submenu_page(
-            'cloudespeed-dashboard',
-            'Cloud E Speed — Invalidation Triggers',
-            '⚙️ Invalidation Rules',
-            'manage_options',
-            'cloudespeed-triggers',
-            [$this, 'render_triggers_page']
-        );
-
-        add_submenu_page(
-            'cloudespeed-dashboard',
-            'Cloud E Speed — API & Server Settings',
-            '🔌 API Configuration',
-            'manage_options',
-            'cloudespeed-settings',
-            [$this, 'render_settings_page']
         );
     }
 
@@ -147,8 +120,8 @@ class CloudESpeedPlugin {
 
         $wp_admin_bar->add_node([
             'id'    => 'cloudespeed-root',
-            'title' => '<span style="color:#06B6D4;font-weight:bold;">⚡ Cloud E Speed</span>',
-            'href'  => admin_url('admin.php?page=cloudespeed-dashboard'),
+            'title' => '<span style="color:#0284C7;font-weight:700;">⚡ Cloud E Speed</span>',
+            'href'  => admin_url('admin.php?page=cloudespeed'),
         ]);
 
         $wp_admin_bar->add_node([
@@ -175,7 +148,7 @@ class CloudESpeedPlugin {
             'id'     => 'cloudespeed-dashboard-link',
             'parent' => 'cloudespeed-root',
             'title'  => '📊 Speed Dashboard',
-            'href'   => admin_url('admin.php?page=cloudespeed-dashboard'),
+            'href'   => admin_url('admin.php?page=cloudespeed'),
         ]);
     }
 
@@ -187,7 +160,6 @@ class CloudESpeedPlugin {
             return new WP_Error('not_configured', 'API Key and URL are not configured.');
         }
 
-        // Construct full URL
         $base_url = preg_replace('#/api/ext/v1/cache.*$#', '', $api_url);
         $full_url = rtrim($base_url, '/') . '/api/ext/v1/cache' . $endpoint_path;
 
@@ -432,7 +404,7 @@ class CloudESpeedPlugin {
             wp_die('Unauthorized');
         }
         $this->purge_cache();
-        $redirect = wp_get_referer() ?: admin_url('admin.php?page=cloudespeed-dashboard');
+        $redirect = wp_get_referer() ?: admin_url('admin.php?page=cloudespeed');
         wp_redirect(add_query_arg('cloudespeed_msg', 'purged_all', $redirect));
         exit;
     }
@@ -449,11 +421,10 @@ class CloudESpeedPlugin {
     }
 
     /**
-     * RENDER THE COMPREHENSIVE CYBER-LUXURY DASHBOARD PAGE
+     * RENDER UNIFIED TABBED LIGHT THEME PAGE
      */
-    public function render_dashboard_page() {
+    public function render_unified_page() {
         $is_configured = $this->is_configured();
-        $api_url = get_option('cloudespeed_api_url', '');
         $logs = get_transient('cloudespeed_purge_logs') ?: [];
         $status_data = null;
         if ($is_configured) {
@@ -464,301 +435,374 @@ class CloudESpeedPlugin {
         }
         ?>
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
             :root {
-                --ces-bg: #090D16;
-                --ces-surface: #0F172A;
-                --ces-surface-card: #1E293B;
-                --ces-border: rgba(255, 255, 255, 0.08);
-                --ces-cyan: #06B6D4;
-                --ces-blue: #3B82F6;
-                --ces-purple: #8B5CF6;
+                --ces-bg: #F8FAFC;
+                --ces-card-bg: #FFFFFF;
+                --ces-border: #E2E8F0;
+                --ces-border-light: #F1F5F9;
+                --ces-primary: #0284C7;
+                --ces-primary-hover: #0369A1;
+                --ces-blue: #2563EB;
+                --ces-indigo: #4F46E5;
                 --ces-emerald: #10B981;
+                --ces-emerald-bg: #ECFDF5;
+                --ces-emerald-border: #A7F3D0;
                 --ces-amber: #F59E0B;
-                --ces-pink: #EC4899;
-                --ces-text: #F8FAFC;
-                --ces-text-muted: #94A3B8;
+                --ces-amber-bg: #FFFBEB;
+                --ces-amber-border: #FDE68A;
+                --ces-danger: #EF4444;
+                --ces-danger-bg: #FEF2F2;
+                --ces-danger-border: #FECACA;
+                --ces-text-main: #0F172A;
+                --ces-text-muted: #64748B;
+                --ces-text-light: #94A3B8;
                 --ces-radius: 14px;
+                --ces-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+                --ces-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
             }
 
-            .ces-dashboard-wrap {
-                max-width: 1280px;
+            .ces-unified-wrap {
+                max-width: 1240px;
                 margin: 20px 20px 40px 0;
-                font-family: -apple-system, BlinkMacSystemFont, 'Outfit', 'Segoe UI', Roboto, sans-serif;
-                color: var(--ces-text);
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                color: var(--ces-text-main);
             }
 
-            .ces-header {
-                background: linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%);
+            /* Header Card */
+            .ces-header-card {
+                background: #FFFFFF;
                 border: 1px solid var(--ces-border);
                 border-radius: var(--ces-radius);
-                padding: 28px 32px;
+                padding: 24px 30px;
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                box-shadow: var(--ces-shadow-sm);
+                margin-bottom: 20px;
                 position: relative;
                 overflow: hidden;
-                margin-bottom: 24px;
             }
 
-            .ces-header::after {
+            .ces-header-card::before {
                 content: '';
                 position: absolute;
-                top: -50px;
-                right: -50px;
-                width: 200px;
-                height: 200px;
-                background: radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%);
-                border-radius: 50%;
-                pointer-events: none;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #0284C7, #3B82F6, #6366F1);
             }
 
-            .ces-logo-badge {
+            .ces-brand-tag {
                 display: inline-flex;
                 align-items: center;
                 gap: 6px;
-                background: rgba(6, 182, 212, 0.15);
-                border: 1px solid rgba(6, 182, 212, 0.3);
-                color: var(--ces-cyan);
-                padding: 4px 12px;
-                border-radius: 50px;
+                background: #F0F9FF;
+                border: 1px solid #BAE6FD;
+                color: #0284C7;
+                padding: 3px 10px;
+                border-radius: 20px;
                 font-size: 11px;
-                font-weight: 800;
-                letter-spacing: 0.08em;
+                font-weight: 700;
+                letter-spacing: 0.04em;
                 text-transform: uppercase;
-                margin-bottom: 8px;
+                margin-bottom: 6px;
             }
 
-            .ces-title {
-                font-size: 26px;
-                font-weight: 900;
-                color: #FFFFFF;
+            .ces-page-title {
+                font-family: 'Outfit', sans-serif;
+                font-size: 24px;
+                font-weight: 800;
+                color: var(--ces-text-main);
                 margin: 0;
                 display: flex;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
             }
 
-            .ces-desc {
+            .ces-page-subtitle {
                 color: var(--ces-text-muted);
                 font-size: 13px;
-                margin: 6px 0 0 0;
+                margin: 4px 0 0 0;
             }
 
-            .ces-header-actions {
+            /* Modern Tab Navigation Bar */
+            .ces-tabs-bar {
                 display: flex;
                 align-items: center;
-                gap: 12px;
-                z-index: 2;
+                gap: 6px;
+                background: #FFFFFF;
+                border: 1px solid var(--ces-border);
+                padding: 6px;
+                border-radius: 12px;
+                box-shadow: var(--ces-shadow-sm);
+                margin-bottom: 24px;
             }
 
-            /* Metrics Grid */
-            .ces-stats-grid {
+            .ces-tab-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 10px 18px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--ces-text-muted);
+                background: transparent;
+                border: none;
+                cursor: pointer;
+                transition: all 0.15s ease;
+            }
+
+            .ces-tab-btn:hover {
+                color: var(--ces-text-main);
+                background: #F8FAFC;
+            }
+
+            .ces-tab-btn.active {
+                background: #F0F9FF;
+                color: #0284C7;
+                font-weight: 700;
+                box-shadow: inset 0 0 0 1px #BAE6FD;
+            }
+
+            .ces-tab-pane {
+                display: none;
+            }
+
+            .ces-tab-pane.active {
+                display: block;
+            }
+
+            /* Metrics Cards Grid */
+            .ces-grid-metrics {
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
                 gap: 16px;
                 margin-bottom: 24px;
             }
 
-            .ces-stat-card {
-                background: var(--ces-surface);
+            .ces-metric-card {
+                background: #FFFFFF;
                 border: 1px solid var(--ces-border);
                 border-radius: var(--ces-radius);
                 padding: 20px;
-                position: relative;
-                transition: transform 0.2s ease, border-color 0.2s ease;
+                box-shadow: var(--ces-shadow-sm);
+                transition: transform 0.15s ease, box-shadow 0.15s ease;
             }
 
-            .ces-stat-card:hover {
+            .ces-metric-card:hover {
                 transform: translateY(-2px);
-                border-color: rgba(6, 182, 212, 0.4);
+                box-shadow: var(--ces-shadow-md);
             }
 
-            .ces-stat-header {
+            .ces-metric-header {
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
                 margin-bottom: 12px;
             }
 
-            .ces-stat-label {
-                font-size: 12px;
+            .ces-metric-label {
+                font-size: 11px;
                 font-weight: 700;
                 color: var(--ces-text-muted);
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
             }
 
-            .ces-stat-value {
+            .ces-metric-value {
+                font-family: 'Outfit', sans-serif;
                 font-size: 24px;
-                font-weight: 900;
-                color: #FFFFFF;
-            }
-
-            .ces-stat-sub {
-                font-size: 11px;
-                color: var(--ces-text-muted);
-                margin-top: 4px;
-            }
-
-            /* Main Layout Grid */
-            .ces-main-grid {
-                display: grid;
-                grid-template-columns: 1fr 340px;
-                gap: 24px;
-            }
-
-            @media (max-width: 1024px) {
-                .ces-main-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-
-            .ces-panel {
-                background: var(--ces-surface);
-                border: 1px solid var(--ces-border);
-                border-radius: var(--ces-radius);
-                padding: 24px;
-                margin-bottom: 24px;
-            }
-
-            .ces-panel-title {
-                font-size: 16px;
                 font-weight: 800;
-                color: #FFFFFF;
-                margin: 0 0 16px 0;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                border-bottom: 1px solid var(--ces-border);
-                padding-bottom: 12px;
+                color: var(--ces-text-main);
+                line-height: 1.2;
             }
 
-            /* Action Buttons */
-            .ces-btn {
+            .ces-metric-sub {
+                font-size: 12px;
+                color: var(--ces-text-muted);
+                margin-top: 5px;
+            }
+
+            /* Pill Badges */
+            .ces-pill {
                 display: inline-flex;
                 align-items: center;
-                justify-content: center;
-                gap: 8px;
-                padding: 10px 20px;
-                border-radius: 10px;
-                font-size: 13px;
-                font-weight: 700;
-                cursor: pointer;
-                border: none;
-                transition: all 0.2s ease;
-                text-decoration: none;
-            }
-
-            .ces-btn-primary {
-                background: linear-gradient(135deg, var(--ces-cyan), var(--ces-blue));
-                color: #FFFFFF !important;
-                box-shadow: 0 4px 15px rgba(6, 182, 212, 0.25);
-            }
-
-            .ces-btn-primary:hover {
-                box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4);
-                transform: translateY(-1px);
-            }
-
-            .ces-btn-danger {
-                background: linear-gradient(135deg, #EF4444, #DC2626);
-                color: #FFFFFF !important;
-                box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25);
-            }
-
-            .ces-btn-amber {
-                background: linear-gradient(135deg, var(--ces-amber), #D97706);
-                color: #FFFFFF !important;
-            }
-
-            .ces-btn-outline {
-                background: rgba(255, 255, 255, 0.05);
-                border: 1px solid var(--ces-border);
-                color: var(--ces-text) !important;
-            }
-
-            .ces-btn-outline:hover {
-                background: rgba(255, 255, 255, 0.1);
-                border-color: rgba(255, 255, 255, 0.2);
-            }
-
-            .ces-btn:disabled {
-                opacity: 0.6;
-                cursor: not-allowed;
-                transform: none !important;
-            }
-
-            /* Interactive Form Inputs */
-            .ces-input-group {
-                display: flex;
-                gap: 10px;
-                margin-top: 10px;
-            }
-
-            .ces-input {
-                flex: 1;
-                background: #090D16 !important;
-                border: 1px solid var(--ces-border) !important;
-                color: #FFFFFF !important;
-                padding: 10px 14px !important;
-                border-radius: 8px !important;
-                font-size: 13px !important;
-                font-family: monospace !important;
-            }
-
-            .ces-input:focus {
-                border-color: var(--ces-cyan) !important;
-                box-shadow: 0 0 0 1px var(--ces-cyan) !important;
-            }
-
-            /* Activity Log Table */
-            .ces-table {
-                width: 100%;
-                border-collapse: collapse;
-                font-size: 12px;
-            }
-
-            .ces-table th {
-                text-align: left;
-                padding: 10px 12px;
-                color: var(--ces-text-muted);
-                font-weight: 700;
-                border-bottom: 1px solid var(--ces-border);
-                background: rgba(255, 255, 255, 0.02);
-            }
-
-            .ces-table td {
-                padding: 10px 12px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-                color: var(--ces-text);
-            }
-
-            .ces-badge {
-                display: inline-block;
+                gap: 4px;
                 padding: 3px 8px;
                 border-radius: 6px;
                 font-size: 11px;
                 font-weight: 700;
             }
 
-            .ces-badge-success { background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3); }
-            .ces-badge-warning { background: rgba(245, 158, 11, 0.15); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.3); }
-            .ces-badge-danger  { background: rgba(239, 68, 68, 0.15); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.3); }
-            .ces-badge-cyan    { background: rgba(6, 182, 212, 0.15); color: #06B6D4; border: 1px solid rgba(6, 182, 212, 0.3); }
+            .ces-pill-emerald { background: var(--ces-emerald-bg); color: #059669; border: 1px solid var(--ces-emerald-border); }
+            .ces-pill-amber   { background: var(--ces-amber-bg); color: #D97706; border: 1px solid var(--ces-amber-border); }
+            .ces-pill-cyan    { background: #F0F9FF; color: #0284C7; border: 1px solid #BAE6FD; }
+            .ces-pill-danger  { background: var(--ces-danger-bg); color: #DC2626; border: 1px solid var(--ces-danger-border); }
+            .ces-pill-blue    { background: #EFF6FF; color: #2563EB; border: 1px solid #BFDBFE; }
 
-            /* Toast */
+            /* Two Column Main Body Grid */
+            .ces-layout-grid {
+                display: grid;
+                grid-template-columns: 1fr 340px;
+                gap: 24px;
+            }
+
+            @media (max-width: 1024px) {
+                .ces-layout-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .ces-box {
+                background: #FFFFFF;
+                border: 1px solid var(--ces-border);
+                border-radius: var(--ces-radius);
+                padding: 24px;
+                box-shadow: var(--ces-shadow-sm);
+                margin-bottom: 24px;
+            }
+
+            .ces-box-header {
+                font-family: 'Outfit', sans-serif;
+                font-size: 16px;
+                font-weight: 700;
+                color: var(--ces-text-main);
+                margin: 0 0 16px 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding-bottom: 12px;
+                border-bottom: 1px solid var(--ces-border-light);
+            }
+
+            /* Buttons */
+            .ces-button {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+                padding: 9px 18px;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: 600;
+                cursor: pointer;
+                border: none;
+                transition: all 0.15s ease;
+                text-decoration: none;
+            }
+
+            .ces-btn-blue {
+                background: linear-gradient(135deg, #0284C7, #2563EB);
+                color: #FFFFFF !important;
+                box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25);
+            }
+
+            .ces-btn-blue:hover {
+                background: linear-gradient(135deg, #0369A1, #1D4ED8);
+                box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+                transform: translateY(-1px);
+            }
+
+            .ces-btn-danger-light {
+                background: #EF4444;
+                color: #FFFFFF !important;
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+            }
+
+            .ces-btn-danger-light:hover {
+                background: #DC2626;
+                transform: translateY(-1px);
+            }
+
+            .ces-btn-amber-light {
+                background: #F59E0B;
+                color: #FFFFFF !important;
+                box-shadow: 0 2px 8px rgba(245, 158, 11, 0.2);
+            }
+
+            .ces-btn-amber-light:hover {
+                background: #D97706;
+                transform: translateY(-1px);
+            }
+
+            .ces-btn-white {
+                background: #FFFFFF;
+                border: 1px solid var(--ces-border);
+                color: var(--ces-text-main) !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+            }
+
+            .ces-btn-white:hover {
+                background: #F8FAFC;
+                border-color: #CBD5E1;
+            }
+
+            .ces-button:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+                transform: none !important;
+            }
+
+            /* Inputs */
+            .ces-input-clean {
+                background: #F8FAFC !important;
+                border: 1px solid var(--ces-border) !important;
+                color: var(--ces-text-main) !important;
+                padding: 9px 14px !important;
+                border-radius: 8px !important;
+                font-size: 13px !important;
+                font-family: monospace !important;
+                transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            }
+
+            .ces-input-clean:focus {
+                background: #FFFFFF !important;
+                border-color: var(--ces-primary) !important;
+                box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
+            }
+
+            /* Clean Light Table */
+            .ces-light-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+            }
+
+            .ces-light-table th {
+                text-align: left;
+                padding: 10px 14px;
+                color: var(--ces-text-muted);
+                font-weight: 600;
+                font-size: 12px;
+                border-bottom: 1px solid var(--ces-border);
+                background: #F8FAFC;
+            }
+
+            .ces-light-table td {
+                padding: 12px 14px;
+                border-bottom: 1px solid var(--ces-border-light);
+                color: var(--ces-text-main);
+            }
+
+            .ces-light-table tr:last-child td {
+                border-bottom: none;
+            }
+
+            /* Floating Clean Toast */
             #ces-toast {
                 display: none;
                 position: fixed;
                 bottom: 24px;
                 right: 24px;
-                background: var(--ces-surface);
-                border: 1px solid var(--ces-cyan);
+                background: #0F172A;
                 color: #FFFFFF;
-                padding: 14px 22px;
-                border-radius: 12px;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+                padding: 12px 20px;
+                border-radius: 10px;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
                 font-size: 13px;
                 font-weight: 600;
                 z-index: 999999;
@@ -767,266 +811,427 @@ class CloudESpeedPlugin {
             }
         </style>
 
-        <div class="ces-dashboard-wrap">
+        <div class="ces-unified-wrap">
             
-            <!-- Hero Header -->
-            <div class="ces-header">
+            <!-- Clean Header Card -->
+            <div class="ces-header-card">
                 <div>
-                    <div class="ces-logo-badge">⚡ Cloud E Panel Official Cache Engine</div>
-                    <h1 class="ces-title">Cloud E Speed Accelerator</h1>
-                    <p class="ces-desc">Intelligent Nginx FastCGI microcaching, real-time invalidation, and development mode control.</p>
+                    <div class="ces-brand-tag">⚡ Cloud E Panel Official Cache Engine</div>
+                    <h1 class="ces-page-title">Cloud E Speed Accelerator</h1>
+                    <p class="ces-page-subtitle">Ultra-fast Nginx FastCGI microcaching, real-time automated invalidation, and development mode controller.</p>
                 </div>
-                <div class="ces-header-actions">
-                    <button type="button" class="ces-btn ces-btn-primary" id="btn-purge-all-top">
-                        🚀 Purge All Cache
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button type="button" class="ces-button ces-btn-blue" id="btn-purge-all-top">
+                        🚀 Purge All FastCGI Cache
                     </button>
-                    <a href="<?php echo admin_url('admin.php?page=cloudespeed-settings'); ?>" class="ces-btn ces-btn-outline">
-                        ⚙️ API Settings
-                    </a>
                 </div>
             </div>
 
-            <!-- Notice Banner if not configured -->
-            <?php if (!$is_configured): ?>
-                <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); padding: 18px 24px; border-radius: var(--ces-radius); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
-                    <div>
-                        <strong style="color: #F59E0B; font-size: 15px;">⚠️ Cloud E Panel Connection Needed</strong>
-                        <p style="color: var(--ces-text-muted); margin: 4px 0 0 0; font-size: 13px;">Please enter your Webhook Purge URL and X-CloudESpeed-Key in settings to activate automated acceleration.</p>
-                    </div>
-                    <a href="<?php echo admin_url('admin.php?page=cloudespeed-settings'); ?>" class="ces-btn ces-btn-amber">
-                        Configure Now →
-                    </a>
-                </div>
-            <?php endif; ?>
-
-            <!-- Metrics Cards Grid -->
-            <div class="ces-stats-grid">
-                
-                <div class="ces-stat-card">
-                    <div class="ces-stat-header">
-                        <span class="ces-stat-label">FastCGI Engine</span>
-                        <span class="ces-badge <?php echo ($status_data && ($status_data['cache_enabled'] ?? true)) ? 'ces-badge-success' : 'ces-badge-warning'; ?>">
-                            <?php echo ($status_data && ($status_data['cache_enabled'] ?? true)) ? 'ACTIVE' : 'STANDBY'; ?>
-                        </span>
-                    </div>
-                    <div class="ces-stat-value" style="color: #10B981;">Nginx Microcache</div>
-                    <div class="ces-stat-sub">Zero PHP-FPM overhead on cached hits</div>
-                </div>
-
-                <div class="ces-stat-card">
-                    <div class="ces-stat-header">
-                        <span class="ces-stat-label">Cache Profile</span>
-                        <span class="ces-badge ces-badge-cyan">PRO</span>
-                    </div>
-                    <div class="ces-stat-value" style="color: #06B6D4;">
-                        <?php echo esc_html(strtoupper($status_data['cache_profile'] ?? 'WordPress')); ?>
-                    </div>
-                    <div class="ces-stat-sub">TTL: <?php echo esc_html(($status_data['cache_ttl'] ?? 3600) / 60); ?> Minutes Default</div>
-                </div>
-
-                <div class="ces-stat-card">
-                    <div class="ces-stat-header">
-                        <span class="ces-stat-label">Development Mode</span>
-                        <span class="ces-badge <?php echo (!empty($status_data['dev_mode'])) ? 'ces-badge-warning' : 'ces-badge-success'; ?>" id="badge-devmode-status">
-                            <?php echo (!empty($status_data['dev_mode'])) ? 'BYPASS ACTIVE' : 'CACHING ON'; ?>
-                        </span>
-                    </div>
-                    <div class="ces-stat-value" id="text-devmode-status" style="color: <?php echo (!empty($status_data['dev_mode'])) ? '#F59E0B' : '#F8FAFC'; ?>;">
-                        <?php echo (!empty($status_data['dev_mode'])) ? 'Bypassing' : 'Live Cache'; ?>
-                    </div>
-                    <div class="ces-stat-sub">Auto-expires after 3 hours</div>
-                </div>
-
-                <div class="ces-stat-card">
-                    <div class="ces-stat-header">
-                        <span class="ces-stat-label">API Status</span>
-                        <span class="ces-badge <?php echo $is_configured ? 'ces-badge-success' : 'ces-badge-danger'; ?>">
-                            <?php echo $is_configured ? 'CONNECTED' : 'DISCONNECTED'; ?>
-                        </span>
-                    </div>
-                    <div class="ces-stat-value" style="color: <?php echo $is_configured ? '#3B82F6' : '#EF4444'; ?>;">
-                        <?php echo $is_configured ? 'REST v1 API' : 'Not Set'; ?>
-                    </div>
-                    <div class="ces-stat-sub">Automated Event Invalidation Ready</div>
-                </div>
-
+            <!-- Modern Unified Tabs Bar -->
+            <div class="ces-tabs-bar">
+                <button type="button" class="ces-tab-btn active" data-tab="tab-dashboard">
+                    📊 Dashboard &amp; Controls
+                </button>
+                <button type="button" class="ces-tab-btn" data-tab="tab-triggers">
+                    ⚙️ Invalidation Rules
+                </button>
+                <button type="button" class="ces-tab-btn" data-tab="tab-api">
+                    🔌 API &amp; Server Settings
+                </button>
+                <button type="button" class="ces-tab-btn" data-tab="tab-guide">
+                    📖 Optimization Guide
+                </button>
             </div>
 
-            <!-- Main Interactive Controls & Sidebar Grid -->
-            <div class="ces-main-grid">
+            <!-- TAB 1: DASHBOARD & CONTROLS -->
+            <div id="tab-dashboard" class="ces-tab-pane active">
                 
-                <!-- Left Column: Cache Purge Actions & Targeted Tools -->
-                <div>
+                <!-- Notice Banner if not configured -->
+                <?php if (!$is_configured): ?>
+                    <div style="background: #FFFBEB; border: 1px solid #FDE68A; padding: 18px 24px; border-radius: var(--ces-radius); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--ces-shadow-sm);">
+                        <div>
+                            <strong style="color: #B45309; font-size: 14px;">⚠️ Cloud E Panel Connection Required</strong>
+                            <p style="color: #92400E; margin: 3px 0 0 0; font-size: 13px;">Please enter your Webhook Purge URL and X-CloudESpeed-Key in the API Settings tab to activate acceleration.</p>
+                        </div>
+                        <button type="button" class="ces-button ces-btn-amber-light" onclick="switchCesTab('tab-api')">
+                            Configure API Key →
+                        </button>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Metrics Telemetry Cards -->
+                <div class="ces-grid-metrics">
                     
-                    <!-- One-Click Invalidation Controls Panel -->
-                    <div class="ces-panel">
-                        <div class="ces-panel-title">
-                            <span>⚡ Quick Cache Operations</span>
-                            <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">Real-time Nginx Invalidation</span>
-                        </div>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                            
-                            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--ces-border); padding: 18px; border-radius: 10px;">
-                                <h4 style="margin: 0 0 6px 0; color: #FFFFFF; font-size: 14px;">🚀 Full FastCGI Cache Purge</h4>
-                                <p style="font-size: 12px; color: var(--ces-text-muted); margin: 0 0 14px 0;">Instantly flushes the complete Nginx cache directory for this domain.</p>
-                                <button type="button" class="ces-btn ces-btn-primary" id="btn-purge-all" style="width: 100%;">
-                                    Purge Entire Cache Now
-                                </button>
-                            </div>
-
-                            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--ces-border); padding: 18px; border-radius: 10px;">
-                                <h4 style="margin: 0 0 6px 0; color: #FFFFFF; font-size: 14px;">🔄 Flush WordPress Object Cache</h4>
-                                <p style="font-size: 12px; color: var(--ces-text-muted); margin: 0 0 14px 0;">Clears WordPress memory transients and internal object cache.</p>
-                                <button type="button" class="ces-btn ces-btn-outline" id="btn-flush-obj" style="width: 100%;">
-                                    Flush WP Object Cache
-                                </button>
-                            </div>
-
-                        </div>
-
-                        <!-- Targeted URL Purge Tool -->
-                        <div style="margin-top: 20px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--ces-border); padding: 18px; border-radius: 10px;">
-                            <h4 style="margin: 0 0 6px 0; color: #FFFFFF; font-size: 14px;">🎯 Targeted URL / Path Invalidation</h4>
-                            <p style="font-size: 12px; color: var(--ces-text-muted); margin: 0 0 10px 0;">Enter a relative path or slug to invalidate a specific page or product without clearing the entire site cache.</p>
-                            <div class="ces-input-group">
-                                <input type="text" id="ces-purge-url-input" class="ces-input" placeholder="e.g. /shop/ or /product/flagship-phone/" />
-                                <button type="button" class="ces-btn ces-btn-primary" id="btn-purge-url">
-                                    Purge URL
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <!-- Development Mode Switcher Panel -->
-                    <div class="ces-panel">
-                        <div class="ces-panel-title">
-                            <span>🛠️ Development Mode (Cache Bypass)</span>
-                            <span class="ces-badge <?php echo (!empty($status_data['dev_mode'])) ? 'ces-badge-warning' : 'ces-badge-success'; ?>" id="devmode-pill">
-                                <?php echo (!empty($status_data['dev_mode'])) ? 'BYPASS ACTIVE' : 'OFF'; ?>
+                    <div class="ces-metric-card">
+                        <div class="ces-metric-header">
+                            <span class="ces-metric-label">Cache Engine</span>
+                            <span class="ces-pill <?php echo ($status_data && ($status_data['cache_enabled'] ?? true)) ? 'ces-pill-emerald' : 'ces-pill-amber'; ?>">
+                                <?php echo ($status_data && ($status_data['cache_enabled'] ?? true)) ? '● Active' : '● Standby'; ?>
                             </span>
                         </div>
-                        <p style="font-size: 13px; color: var(--ces-text-muted); margin: 0 0 16px 0;">
-                            When Development Mode is enabled, Cloud E Panel automatically bypasses the Nginx FastCGI microcache for all visitors. This allows you to inspect real-time CSS/JS changes and PHP updates immediately without having to purge cache repeatedly.
-                        </p>
-                        <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--ces-border); padding: 16px 20px; border-radius: 10px;">
-                            <div>
-                                <strong style="color: #FFFFFF; font-size: 14px;" id="devmode-title">
-                                    <?php echo (!empty($status_data['dev_mode'])) ? 'Development Mode is currently Active' : 'Development Mode is currently Inactive'; ?>
-                                </strong>
-                                <p style="font-size: 12px; color: var(--ces-text-muted); margin: 4px 0 0 0;">
-                                    <?php echo (!empty($status_data['dev_mode'])) ? 'All cache hits are bypassed. Cache will automatically resume after timer.' : 'Nginx is actively caching static & dynamic HTML responses for ultra-fast TTFB.'; ?>
-                                </p>
-                            </div>
-                            <div>
-                                <button type="button" class="ces-btn <?php echo (!empty($status_data['dev_mode'])) ? 'ces-btn-danger' : 'ces-btn-amber'; ?>" id="btn-toggle-devmode" data-active="<?php echo (!empty($status_data['dev_mode'])) ? '1' : '0'; ?>">
-                                    <?php echo (!empty($status_data['dev_mode'])) ? 'Turn Off Dev Mode' : 'Enable Dev Mode (3h)'; ?>
-                                </button>
-                            </div>
-                        </div>
+                        <div class="ces-metric-value" style="color: #059669;">Nginx FastCGI</div>
+                        <div class="ces-metric-sub">Zero PHP-FPM overhead on cached hits</div>
                     </div>
 
-                    <!-- Invalidation History Log -->
-                    <div class="ces-panel">
-                        <div class="ces-panel-title">
-                            <span>🕒 Recent Invalidation Log</span>
-                            <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">Last 15 Events</span>
+                    <div class="ces-metric-card">
+                        <div class="ces-metric-header">
+                            <span class="ces-metric-label">Profile &amp; TTL</span>
+                            <span class="ces-pill ces-pill-cyan">Optimized</span>
                         </div>
-                        <?php if (empty($logs)): ?>
-                            <p style="color: var(--ces-text-muted); font-size: 13px; margin: 10px 0;">No invalidation events recorded yet. Events will appear here in real time.</p>
-                        <?php else: ?>
-                            <div style="overflow-x: auto;">
-                                <table class="ces-table">
-                                    <thead>
-                                        <tr>
-                                            <th style="width: 180px;">Timestamp</th>
-                                            <th>Trigger / Invalidation Target</th>
-                                            <th style="width: 100px; text-align: right;">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($logs as $log): ?>
-                                            <tr>
-                                                <td style="font-family: monospace; color: var(--ces-text-muted);"><?php echo esc_html($log['time']); ?></td>
-                                                <td style="font-weight: 600; color: #FFFFFF;"><?php echo esc_html($log['type']); ?></td>
-                                                <td style="text-align: right;"><span class="ces-badge ces-badge-success">Purged</span></td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
+                        <div class="ces-metric-value" style="color: #0284C7;">
+                            <?php echo esc_html(ucfirst($status_data['cache_profile'] ?? 'WordPress')); ?>
+                        </div>
+                        <div class="ces-metric-sub">Default TTL: <?php echo esc_html(($status_data['cache_ttl'] ?? 3600) / 60); ?> Minutes</div>
+                    </div>
+
+                    <div class="ces-metric-card">
+                        <div class="ces-metric-header">
+                            <span class="ces-metric-label">Development Mode</span>
+                            <span class="ces-pill <?php echo (!empty($status_data['dev_mode'])) ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="badge-devmode-status">
+                                <?php echo (!empty($status_data['dev_mode'])) ? '● Bypass Active' : '● Caching On'; ?>
+                            </span>
+                        </div>
+                        <div class="ces-metric-value" id="text-devmode-status" style="color: <?php echo (!empty($status_data['dev_mode'])) ? '#D97706' : '#0F172A'; ?>;">
+                            <?php echo (!empty($status_data['dev_mode'])) ? 'Bypassing' : 'Live Cache'; ?>
+                        </div>
+                        <div class="ces-metric-sub">Bypasses caching for design changes</div>
+                    </div>
+
+                    <div class="ces-metric-card">
+                        <div class="ces-metric-header">
+                            <span class="ces-metric-label">REST API</span>
+                            <span class="ces-pill <?php echo $is_configured ? 'ces-pill-blue' : 'ces-pill-danger'; ?>">
+                                <?php echo $is_configured ? '● Connected' : '● Disconnected'; ?>
+                            </span>
+                        </div>
+                        <div class="ces-metric-value" style="color: <?php echo $is_configured ? '#2563EB' : '#DC2626'; ?>;">
+                            <?php echo $is_configured ? 'v1 REST Endpoint' : 'Not Configured'; ?>
+                        </div>
+                        <div class="ces-metric-sub">Instant Webhook Invalidation Ready</div>
                     </div>
 
                 </div>
 
-                <!-- Right Column: System Info & Rules Summary -->
-                <div>
+                <!-- Main Layout Grid -->
+                <div class="ces-layout-grid">
                     
-                    <!-- Automation Summary Widget -->
-                    <div class="ces-panel">
-                        <div class="ces-panel-title">
-                            <span>⚡ Active Automation</span>
+                    <!-- Left Column: Operations & Tools -->
+                    <div>
+                        
+                        <!-- Quick Invalidation Actions -->
+                        <div class="ces-box">
+                            <div class="ces-box-header">
+                                <span>⚡ Quick Cache Operations</span>
+                                <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">Instant Non-blocking Invalidation</span>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                
+                                <div style="background: #F8FAFC; border: 1px solid var(--ces-border); padding: 18px; border-radius: 10px;">
+                                    <h4 style="margin: 0 0 6px 0; color: var(--ces-text-main); font-size: 14px; font-weight: 700;">🚀 Purge Entire FastCGI Cache</h4>
+                                    <p style="font-size: 12px; color: var(--ces-text-muted); margin: 0 0 14px 0;">Flushes the complete Nginx cache directory on the server for this domain.</p>
+                                    <button type="button" class="ces-button ces-btn-blue" id="btn-purge-all" style="width: 100%;">
+                                        Purge Entire Cache Now
+                                    </button>
+                                </div>
+
+                                <div style="background: #F8FAFC; border: 1px solid var(--ces-border); padding: 18px; border-radius: 10px;">
+                                    <h4 style="margin: 0 0 6px 0; color: var(--ces-text-main); font-size: 14px; font-weight: 700;">🔄 Flush WP Memory Cache</h4>
+                                    <p style="font-size: 12px; color: var(--ces-text-muted); margin: 0 0 14px 0;">Clears WordPress internal transients and database query cache in memory.</p>
+                                    <button type="button" class="ces-button ces-btn-white" id="btn-flush-obj" style="width: 100%;">
+                                        Flush WP Memory Cache
+                                    </button>
+                                </div>
+
+                            </div>
+
+                            <!-- Targeted URL Purge Box -->
+                            <div style="margin-top: 20px; background: #F8FAFC; border: 1px solid var(--ces-border); padding: 18px; border-radius: 10px;">
+                                <h4 style="margin: 0 0 6px 0; color: var(--ces-text-main); font-size: 14px; font-weight: 700;">🎯 Targeted URL / Path Invalidation</h4>
+                                <p style="font-size: 12px; color: var(--ces-text-muted); margin: 0 0 10px 0;">Enter a relative path or slug to invalidate a specific page or product without wiping the whole site cache.</p>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="ces-purge-url-input" class="ces-input-clean" style="flex: 1;" placeholder="e.g. /shop/ or /product/flagship-phone/" />
+                                    <button type="button" class="ces-button ces-btn-blue" id="btn-purge-url">
+                                        Purge URL
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="color: var(--ces-text-muted);">Posts / Pages / CPT</span>
-                                <span class="ces-badge ces-badge-success">✓ Enabled</span>
+
+                        <!-- Development Mode Switcher Box -->
+                        <div class="ces-box">
+                            <div class="ces-box-header">
+                                <span>🛠️ Development Mode (Live Cache Bypass)</span>
+                                <span class="ces-pill <?php echo (!empty($status_data['dev_mode'])) ? 'ces-pill-amber' : 'ces-pill-emerald'; ?>" id="devmode-pill">
+                                    <?php echo (!empty($status_data['dev_mode'])) ? '● Active' : '● Inactive'; ?>
+                                </span>
                             </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="color: var(--ces-text-muted);">Elementor Editor Saves</span>
-                                <span class="ces-badge ces-badge-success">✓ Enabled</span>
-                            </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="color: var(--ces-text-muted);">WooCommerce &amp; Stock</span>
-                                <span class="ces-badge ces-badge-success">✓ Enabled</span>
-                            </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="color: var(--ces-text-muted);">Nav Menus &amp; Themes</span>
-                                <span class="ces-badge ces-badge-success">✓ Enabled</span>
-                            </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <span style="color: var(--ces-text-muted);">Dual WP Object Flush</span>
-                                <span class="ces-badge ces-badge-success">✓ Enabled</span>
+                            <p style="font-size: 13px; color: var(--ces-text-muted); margin: 0 0 16px 0; line-height: 1.5;">
+                                When Development Mode is enabled, Cloud E Panel automatically bypasses the Nginx FastCGI cache for all visitors. This allows you to test CSS/JS modifications and theme changes in real time without manual purges.
+                            </p>
+                            <div style="display: flex; align-items: center; justify-content: space-between; background: #F8FAFC; border: 1px solid var(--ces-border); padding: 16px 20px; border-radius: 10px;">
+                                <div>
+                                    <strong style="color: var(--ces-text-main); font-size: 14px;" id="devmode-title">
+                                        <?php echo (!empty($status_data['dev_mode'])) ? 'Development Mode is currently Active' : 'Development Mode is currently Inactive'; ?>
+                                    </strong>
+                                    <p style="font-size: 12px; color: var(--ces-text-muted); margin: 3px 0 0 0;">
+                                        <?php echo (!empty($status_data['dev_mode'])) ? 'Cache is bypassed. Caching will automatically resume after 3 hours.' : 'Nginx is actively accelerating static & dynamic HTML responses for instant TTFB.'; ?>
+                                    </p>
+                                </div>
+                                <div>
+                                    <button type="button" class="ces-button <?php echo (!empty($status_data['dev_mode'])) ? 'ces-btn-danger-light' : 'ces-btn-amber-light'; ?>" id="btn-toggle-devmode" data-active="<?php echo (!empty($status_data['dev_mode'])) ? '1' : '0'; ?>">
+                                        <?php echo (!empty($status_data['dev_mode'])) ? 'Turn Off Dev Mode' : 'Enable Dev Mode (3h)'; ?>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--ces-border);">
-                            <a href="<?php echo admin_url('admin.php?page=cloudespeed-triggers'); ?>" class="ces-btn ces-btn-outline" style="width: 100%;">
-                                Customize Triggers →
-                            </a>
+
+                        <!-- Invalidation History Log -->
+                        <div class="ces-box">
+                            <div class="ces-box-header">
+                                <span>🕒 Recent Invalidation Log</span>
+                                <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">Last 15 Events</span>
+                            </div>
+                            <?php if (empty($logs)): ?>
+                                <p style="color: var(--ces-text-muted); font-size: 13px; margin: 10px 0;">No invalidation events recorded yet. Automatic and manual purges will appear here in real time.</p>
+                            <?php else: ?>
+                                <div style="overflow-x: auto; border: 1px solid var(--ces-border); border-radius: 8px;">
+                                    <table class="ces-light-table">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 170px;">Timestamp</th>
+                                                <th>Trigger / Invalidation Target</th>
+                                                <th style="width: 90px; text-align: right;">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($logs as $log): ?>
+                                                <tr>
+                                                    <td style="font-family: monospace; font-size: 12px; color: var(--ces-text-muted);"><?php echo esc_html($log['time']); ?></td>
+                                                    <td style="font-weight: 600; color: var(--ces-text-main);"><?php echo esc_html($log['type']); ?></td>
+                                                    <td style="text-align: right;"><span class="ces-pill ces-pill-emerald">Purged</span></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
                         </div>
+
                     </div>
 
-                    <!-- Nginx Cache Details Widget -->
-                    <div class="ces-panel">
-                        <div class="ces-panel-title">
-                            <span>ℹ️ Server Environment</span>
+                    <!-- Right Column: Automation & Environment Info -->
+                    <div>
+                        
+                        <!-- Automation Summary Widget -->
+                        <div class="ces-box">
+                            <div class="ces-box-header">
+                                <span>⚡ Active Automation</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="color: var(--ces-text-muted);">Posts &amp; Pages</span>
+                                    <span class="ces-pill ces-pill-emerald">✓ Enabled</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="color: var(--ces-text-muted);">Elementor Editor Saves</span>
+                                    <span class="ces-pill ces-pill-emerald">✓ Enabled</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="color: var(--ces-text-muted);">WooCommerce &amp; Stock</span>
+                                    <span class="ces-pill ces-pill-emerald">✓ Enabled</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="color: var(--ces-text-muted);">Navigation Menus</span>
+                                    <span class="ces-pill ces-pill-emerald">✓ Enabled</span>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="color: var(--ces-text-muted);">Dual WP Object Flush</span>
+                                    <span class="ces-pill ces-pill-emerald">✓ Enabled</span>
+                                </div>
+                            </div>
+                            <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--ces-border-light);">
+                                <button type="button" class="ces-button ces-btn-white" onclick="switchCesTab('tab-triggers')" style="width: 100%;">
+                                    Configure Rules →
+                                </button>
+                            </div>
                         </div>
-                        <div style="font-size: 12px; color: var(--ces-text-muted); display: flex; flex-direction: column; gap: 10px;">
-                            <div>
-                                <span style="color: #FFFFFF; font-weight: 600;">Control Panel:</span> Cloud E Panel v0.1.0
+
+                        <!-- Server Environment Details -->
+                        <div class="ces-box">
+                            <div class="ces-box-header">
+                                <span>ℹ️ Server Environment</span>
                             </div>
-                            <div>
-                                <span style="color: #FFFFFF; font-weight: 600;">Accelerator:</span> Nginx FastCGI Microcache
-                            </div>
-                            <div>
-                                <span style="color: #FFFFFF; font-weight: 600;">PHP-FPM Runtime:</span> PHP <?php echo phpversion(); ?>
-                            </div>
-                            <div>
-                                <span style="color: #FFFFFF; font-weight: 600;">Cache Invalidation:</span> Async Non-blocking HTTP
-                            </div>
-                            <div>
-                                <span style="color: #FFFFFF; font-weight: 600;">Bypass Cookies:</span> wordpress_logged_in_*, woocommerce_items_in_cart
+                            <div style="font-size: 12px; color: var(--ces-text-muted); display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--ces-border-light); padding-bottom: 8px;">
+                                    <span style="font-weight: 600; color: var(--ces-text-main);">Control Panel:</span>
+                                    <span>Cloud E Panel v0.1.0</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--ces-border-light); padding-bottom: 8px;">
+                                    <span style="font-weight: 600; color: var(--ces-text-main);">Accelerator:</span>
+                                    <span style="color: #059669; font-weight: 600;">Nginx FastCGI</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--ces-border-light); padding-bottom: 8px;">
+                                    <span style="font-weight: 600; color: var(--ces-text-main);">PHP Engine:</span>
+                                    <span>PHP <?php echo phpversion(); ?></span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--ces-border-light); padding-bottom: 8px;">
+                                    <span style="font-weight: 600; color: var(--ces-text-main);">HTTP Invalidation:</span>
+                                    <span>Non-blocking (Async)</span>
+                                </div>
+                                <div>
+                                    <span style="font-weight: 600; color: var(--ces-text-main);">Bypass Cookies:</span>
+                                    <div style="font-family: monospace; font-size: 11px; margin-top: 3px; color: var(--ces-text-light);">wordpress_logged_in_*, woocommerce_items_in_cart</div>
+                                </div>
                             </div>
                         </div>
+
                     </div>
 
                 </div>
 
             </div>
 
-            <!-- Floating Toast Notification -->
+            <!-- TAB 2: INVALIDATION RULES -->
+            <div id="tab-triggers" class="ces-tab-pane">
+                <form method="post" action="options.php" class="ces-box">
+                    <?php settings_fields('cloudespeed_settings'); ?>
+                    <input type="hidden" name="cloudespeed_api_url" value="<?php echo esc_attr(get_option('cloudespeed_api_url')); ?>" />
+                    <input type="hidden" name="cloudespeed_api_key" value="<?php echo esc_attr(get_option('cloudespeed_api_key')); ?>" />
+                    <input type="hidden" name="cloudespeed_ssl_verify" value="<?php echo esc_attr(get_option('cloudespeed_ssl_verify', '0')); ?>" />
+
+                    <div class="ces-box-header">
+                        <span>⚙️ Content &amp; Event Invalidation Triggers</span>
+                        <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">Auto-clears Nginx Cache on updates</span>
+                    </div>
+
+                    <table class="form-table" style="margin-top: 0;">
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">Posts, Pages &amp; CPT</th>
+                            <td>
+                                <label style="font-weight: 500; color: var(--ces-text-main);">
+                                    <input type="checkbox" name="cloudespeed_purge_on_post" value="1" <?php checked(get_option('cloudespeed_purge_on_post', '1'), '1'); ?> />
+                                    Automatically invalidate cache when posts, pages, custom post types, or Elementor designs are updated
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">WooCommerce Store</th>
+                            <td>
+                                <label style="font-weight: 500; color: var(--ces-text-main);">
+                                    <input type="checkbox" name="cloudespeed_purge_on_woo" value="1" <?php checked(get_option('cloudespeed_purge_on_woo', '1'), '1'); ?> />
+                                    Automatically invalidate cache on product edits, new products, and order stock inventory changes
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">Menus &amp; Widgets</th>
+                            <td>
+                                <label style="font-weight: 500; color: var(--ces-text-main);">
+                                    <input type="checkbox" name="cloudespeed_purge_on_menu" value="1" <?php checked(get_option('cloudespeed_purge_on_menu', '1'), '1'); ?> />
+                                    Automatically invalidate cache when navigation menus, widgets, or Customizer settings change
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">WP Object Cache</th>
+                            <td>
+                                <label style="font-weight: 500; color: var(--ces-text-main);">
+                                    <input type="checkbox" name="cloudespeed_flush_object_cache" value="1" <?php checked(get_option('cloudespeed_flush_object_cache', '1'), '1'); ?> />
+                                    Simultaneously flush WordPress internal transients / object cache during FastCGI purges
+                                </label>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--ces-border-light);">
+                        <button type="submit" class="ces-button ces-btn-blue">
+                            Save Invalidation Rules
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 3: API & SERVER SETTINGS -->
+            <div id="tab-api" class="ces-tab-pane">
+                <form method="post" action="options.php" class="ces-box">
+                    <?php settings_fields('cloudespeed_settings'); ?>
+                    
+                    <div class="ces-box-header">
+                        <span>🔌 Cloud E Panel Connection Credentials</span>
+                        <span style="font-size: 12px; font-weight: 500; color: var(--ces-text-muted);">Domain API Key Authentication</span>
+                    </div>
+
+                    <table class="form-table" style="margin-top: 0;">
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">Webhook Purge URL:</th>
+                            <td>
+                                <input type="url" name="cloudespeed_api_url" id="cloudespeed_api_url" value="<?php echo esc_attr(get_option('cloudespeed_api_url')); ?>" class="ces-input-clean" style="width: 100%; max-width: 550px;" placeholder="https://server.cloudetech.org:2083/api/ext/v1/cache/purge" required />
+                                <p class="description" style="color: var(--ces-text-muted); margin-top: 6px;">Found in Cloud E Panel &gt; <strong>Cloud E Speed (⚡)</strong> &gt; <em>API &amp; Plugin Guide</em>.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">X-CloudESpeed-Key:</th>
+                            <td>
+                                <input type="password" name="cloudespeed_api_key" id="cloudespeed_api_key" value="<?php echo esc_attr(get_option('cloudespeed_api_key')); ?>" class="ces-input-clean" style="width: 100%; max-width: 550px;" required />
+                                <p class="description" style="color: var(--ces-text-muted); margin-top: 6px;">Your unique domain secret key from Cloud E Panel speed settings.</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row" style="font-weight: 600; color: var(--ces-text-main);">SSL Certificate Verification:</th>
+                            <td>
+                                <label style="color: var(--ces-text-main);">
+                                    <input type="checkbox" name="cloudespeed_ssl_verify" value="1" <?php checked(get_option('cloudespeed_ssl_verify', '0'), '1'); ?> />
+                                    Verify SSL Certificate (Uncheck if your panel uses a self-signed cert on port 8443)
+                                </label>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--ces-border-light); display: flex; align-items: center; gap: 12px;">
+                        <button type="submit" class="ces-button ces-btn-blue">
+                            Save Configuration
+                        </button>
+                        <button type="button" id="btn-test-connection" class="ces-button ces-btn-white">
+                            🔍 Test API Connection
+                        </button>
+                        <span id="test-connection-status" style="font-weight: 600; font-size: 13px;"></span>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 4: OPTIMIZATION GUIDE & DOCS -->
+            <div id="tab-guide" class="ces-tab-pane">
+                <div class="ces-box">
+                    <div class="ces-box-header">
+                        <span>📖 Cloud E Speed Architecture &amp; Best Practices</span>
+                    </div>
+                    <div style="font-size: 13px; line-height: 1.6; color: var(--ces-text-main);">
+                        <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">1. How Nginx FastCGI Microcaching Works</h4>
+                        <p style="color: var(--ces-text-muted); margin: 0 0 16px 0;">
+                            Unlike heavy WordPress PHP caching plugins that execute PHP on every request, Cloud E Speed utilizes server-level Nginx FastCGI caching. When a visitor requests a page, Nginx serves the pre-compiled HTML response directly from RAM/Disk in <strong>&lt; 50ms</strong> without touching PHP-FPM or MariaDB.
+                        </p>
+
+                        <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">2. Dynamic Cart &amp; Login Bypass</h4>
+                        <p style="color: var(--ces-text-muted); margin: 0 0 16px 0;">
+                            Cloud E Speed is 100% WooCommerce and membership compatible. When a user logs in (<code>wordpress_logged_in_*</code>) or adds an item to cart (<code>woocommerce_items_in_cart</code>), Nginx automatically bypasses the cache so dynamic checkout, carts, and user profiles function seamlessly.
+                        </p>
+
+                        <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">3. Zero-Latency Event Invalidation</h4>
+                        <p style="color: var(--ces-text-muted); margin: 0 0 16px 0;">
+                            When you publish a post, update WooCommerce stock, or save an Elementor page, this plugin sends a background non-blocking HTTP webhook to Cloud E Panel. The panel immediately deletes the cached file for that page so your visitors see the fresh content instantly.
+                        </p>
+
+                        <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">4. Development Mode</h4>
+                        <p style="color: var(--ces-text-muted); margin: 0;">
+                            Working on site redesign or modifying CSS/JS? Turn on <strong>Development Mode</strong> from the Dashboard tab. FastCGI caching will be temporarily bypassed for 3 hours, after which it automatically re-enables itself.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clean Floating Toast -->
             <div id="ces-toast">
                 <span id="ces-toast-icon">✓</span>
                 <span id="ces-toast-msg">Operation completed successfully!</span>
@@ -1035,14 +1240,36 @@ class CloudESpeedPlugin {
         </div>
 
         <script>
+        function switchCesTab(tabId) {
+            jQuery('.ces-tab-btn').removeClass('active');
+            jQuery('.ces-tab-btn[data-tab="' + tabId + '"]').addClass('active');
+            jQuery('.ces-tab-pane').removeClass('active');
+            jQuery('#' + tabId).addClass('active');
+            window.location.hash = tabId.replace('tab-', '');
+        }
+
         jQuery(document).ready(function($) {
             var nonce = '<?php echo wp_create_nonce('cloudespeed_dash_nonce'); ?>';
+
+            // Hash based tab activation
+            if (window.location.hash) {
+                var hashTab = 'tab-' + window.location.hash.replace('#', '');
+                if ($('#' + hashTab).length) {
+                    switchCesTab(hashTab);
+                }
+            }
+
+            // Tab click event
+            $('.ces-tab-btn').on('click', function() {
+                var tabId = $(this).data('tab');
+                switchCesTab(tabId);
+            });
 
             function showToast(msg, isError) {
                 var $t = $('#ces-toast');
                 $('#ces-toast-msg').text(msg);
                 $('#ces-toast-icon').text(isError ? '✕' : '✓');
-                $t.css('border-color', isError ? '#EF4444' : '#06B6D4');
+                $t.css('background', isError ? '#EF4444' : '#0F172A');
                 $t.fadeIn(200);
                 setTimeout(function() {
                     $t.fadeOut(300);
@@ -1058,7 +1285,7 @@ class CloudESpeedPlugin {
                     nonce: nonce
                 }, function(res) {
                     $btn.prop('disabled', false).text('Purge Entire Cache Now');
-                    $('#btn-purge-all-top').text('🚀 Purge All Cache');
+                    $('#btn-purge-all-top').text('🚀 Purge All FastCGI Cache');
                     if (res.success) {
                         showToast(res.data.message, false);
                     } else {
@@ -1066,7 +1293,7 @@ class CloudESpeedPlugin {
                     }
                 }).fail(function() {
                     $btn.prop('disabled', false).text('Purge Entire Cache Now');
-                    $('#btn-purge-all-top').text('🚀 Purge All Cache');
+                    $('#btn-purge-all-top').text('🚀 Purge All FastCGI Cache');
                     showToast('Server request failed or timed out', true);
                 });
             });
@@ -1106,7 +1333,7 @@ class CloudESpeedPlugin {
                     action: 'cloudespeed_ajax_flush_object_cache',
                     nonce: nonce
                 }, function(res) {
-                    $btn.prop('disabled', false).text('Flush WP Object Cache');
+                    $btn.prop('disabled', false).text('Flush WP Memory Cache');
                     if (res.success) {
                         showToast(res.data.message, false);
                     } else {
@@ -1132,14 +1359,14 @@ class CloudESpeedPlugin {
                     if (res.success) {
                         showToast(res.data.message, false);
                         if (targetState) {
-                            $btn.data('active', 1).removeClass('ces-btn-amber').addClass('ces-btn-danger').text('Turn Off Dev Mode');
-                            $('#devmode-pill, #badge-devmode-status').removeClass('ces-badge-success').addClass('ces-badge-warning').text('BYPASS ACTIVE');
-                            $('#text-devmode-status').css('color', '#F59E0B').text('Bypassing');
+                            $btn.data('active', 1).removeClass('ces-btn-amber-light').addClass('ces-btn-danger-light').text('Turn Off Dev Mode');
+                            $('#devmode-pill, #badge-devmode-status').removeClass('ces-pill-emerald').addClass('ces-pill-amber').text('● Bypass Active');
+                            $('#text-devmode-status').css('color', '#D97706').text('Bypassing');
                             $('#devmode-title').text('Development Mode is currently Active');
                         } else {
-                            $btn.data('active', 0).removeClass('ces-btn-danger').addClass('ces-btn-amber').text('Enable Dev Mode (3h)');
-                            $('#devmode-pill, #badge-devmode-status').removeClass('ces-badge-warning').addClass('ces-badge-success').text('CACHING ON');
-                            $('#text-devmode-status').css('color', '#F8FAFC').text('Live Cache');
+                            $btn.data('active', 0).removeClass('ces-btn-danger-light').addClass('ces-btn-amber-light').text('Enable Dev Mode (3h)');
+                            $('#devmode-pill, #badge-devmode-status').removeClass('ces-pill-amber').addClass('ces-pill-emerald').text('● Caching On');
+                            $('#text-devmode-status').css('color', '#0F172A').text('Live Cache');
                             $('#devmode-title').text('Development Mode is currently Inactive');
                         }
                     } else {
@@ -1151,121 +1378,8 @@ class CloudESpeedPlugin {
                     showToast('API request timed out', true);
                 });
             });
-        });
-        </script>
-        <?php
-    }
 
-    /**
-     * RENDER THE TRIGGERS CONFIGURATION PAGE
-     */
-    public function render_triggers_page() {
-        ?>
-        <div class="wrap" style="max-width: 900px;">
-            <h1>⚡ Cloud E Speed — Invalidation Triggers</h1>
-            <p>Select which WordPress and WooCommerce events will automatically invalidate the FastCGI cache.</p>
-
-            <form method="post" action="options.php" style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 24px; border-radius: 12px; margin-top: 20px;">
-                <?php settings_fields('cloudespeed_settings'); ?>
-                <input type="hidden" name="cloudespeed_api_url" value="<?php echo esc_attr(get_option('cloudespeed_api_url')); ?>" />
-                <input type="hidden" name="cloudespeed_api_key" value="<?php echo esc_attr(get_option('cloudespeed_api_key')); ?>" />
-                <input type="hidden" name="cloudespeed_ssl_verify" value="<?php echo esc_attr(get_option('cloudespeed_ssl_verify', '0')); ?>" />
-
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">Posts, Pages &amp; CPT</th>
-                        <td>
-                            <label>
-                                <input type="checkbox" name="cloudespeed_purge_on_post" value="1" <?php checked(get_option('cloudespeed_purge_on_post', '1'), '1'); ?> />
-                                Invalidate cache whenever posts, pages, or custom post types are published, modified, or trashed
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">WooCommerce Store</th>
-                        <td>
-                            <label>
-                                <input type="checkbox" name="cloudespeed_purge_on_woo" value="1" <?php checked(get_option('cloudespeed_purge_on_woo', '1'), '1'); ?> />
-                                Invalidate cache on product edits, new products, and inventory/stock deduction on orders
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">Menus &amp; Widgets</th>
-                        <td>
-                            <label>
-                                <input type="checkbox" name="cloudespeed_purge_on_menu" value="1" <?php checked(get_option('cloudespeed_purge_on_menu', '1'), '1'); ?> />
-                                Invalidate cache when navigation menus, widgets, or Customizer settings change
-                            </label>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">WP Object Cache</th>
-                        <td>
-                            <label>
-                                <input type="checkbox" name="cloudespeed_flush_object_cache" value="1" <?php checked(get_option('cloudespeed_flush_object_cache', '1'), '1'); ?> />
-                                Automatically flush WordPress Object Cache and transients alongside Nginx FastCGI purges
-                            </label>
-                        </td>
-                    </tr>
-                </table>
-
-                <?php submit_button('Save Invalidation Rules', 'primary'); ?>
-            </form>
-        </div>
-        <?php
-    }
-
-    /**
-     * RENDER THE API SETTINGS PAGE
-     */
-    public function render_settings_page() {
-        ?>
-        <div class="wrap" style="max-width: 900px;">
-            <h1>🔌 Cloud E Panel API Configuration</h1>
-            <p>Connect your WordPress installation to Cloud E Panel to enable instant FastCGI microcache invalidation.</p>
-
-            <form method="post" action="options.php" style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 24px; border-radius: 12px; margin-top: 20px;">
-                <?php settings_fields('cloudespeed_settings'); ?>
-                
-                <table class="form-table">
-                    <tr>
-                        <th scope="row">Webhook Purge URL:</th>
-                        <td>
-                            <input type="url" name="cloudespeed_api_url" id="cloudespeed_api_url" value="<?php echo esc_attr(get_option('cloudespeed_api_url')); ?>" style="width: 100%; max-width: 550px; font-family: monospace;" placeholder="https://server.cloudetech.org:8443/api/ext/v1/cache/purge" required />
-                            <p class="description">Obtained from Cloud E Panel &gt; <strong>Cloud E Speed (⚡)</strong> &gt; <em>API &amp; Plugin Guide</em>.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">X-CloudESpeed-Key:</th>
-                        <td>
-                            <input type="password" name="cloudespeed_api_key" id="cloudespeed_api_key" value="<?php echo esc_attr(get_option('cloudespeed_api_key')); ?>" style="width: 100%; max-width: 550px; font-family: monospace;" required />
-                            <p class="description">Your secret website API Key from the Cloud E Panel speed settings.</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th scope="row">SSL Verification:</th>
-                        <td>
-                            <label>
-                                <input type="checkbox" name="cloudespeed_ssl_verify" value="1" <?php checked(get_option('cloudespeed_ssl_verify', '0'), '1'); ?> />
-                                Verify SSL certificate (Uncheck if using a self-signed certificate on port 8443)
-                            </label>
-                        </td>
-                    </tr>
-                </table>
-
-                <div style="margin-top: 20px; display: flex; align-items: center; gap: 12px;">
-                    <?php submit_button('Save Configuration', 'primary', 'submit', false); ?>
-                    <button type="button" id="btn-test-connection" class="button button-secondary">
-                        🔍 Test API Connection
-                    </button>
-                    <span id="test-connection-status" style="font-weight: 600; font-size: 13px;"></span>
-                </div>
-            </form>
-        </div>
-
-        <script>
-        jQuery(document).ready(function($) {
+            // Live Test Connection
             $('#btn-test-connection').on('click', function() {
                 var $btn = $(this);
                 var $status = $('#test-connection-status');
@@ -1273,7 +1387,7 @@ class CloudESpeedPlugin {
                 var apiKey = $('#cloudespeed_api_key').val();
 
                 $btn.prop('disabled', true).text('Testing...');
-                $status.html('<span style="color:#3B82F6;">Connecting to Cloud E Panel...</span>');
+                $status.html('<span style="color:#0284C7;">Connecting to Cloud E Panel...</span>');
 
                 $.post(ajaxurl, {
                     action: 'cloudespeed_test_connection',
@@ -1283,13 +1397,13 @@ class CloudESpeedPlugin {
                 }, function(res) {
                     $btn.prop('disabled', false).text('🔍 Test API Connection');
                     if (res.success) {
-                        $status.html('<span style="color:#10B981;">✓ ' + res.data.message + '</span>');
+                        $status.html('<span style="color:#059669;">✓ ' + res.data.message + '</span>');
                     } else {
-                        $status.html('<span style="color:#EF4444;">✕ ' + (res.data ? res.data.message : 'Error') + '</span>');
+                        $status.html('<span style="color:#DC2626;">✕ ' + (res.data ? res.data.message : 'Error') + '</span>');
                     }
                 }).fail(function() {
                     $btn.prop('disabled', false).text('🔍 Test API Connection');
-                    $status.html('<span style="color:#EF4444;">✕ Server request timed out.</span>');
+                    $status.html('<span style="color:#DC2626;">✕ Server request timed out.</span>');
                 });
             });
         });
