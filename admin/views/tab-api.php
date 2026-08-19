@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
                 <span class="ces-pill ces-pill-emerald">● Zero Configuration Active</span>
                 <h3 style="margin: 0; color: #065F46; font-size: 16px; font-weight: 700;">Native Server Auto-Discovery Connected!</h3>
             </div>
-            <span class="ces-pill ces-pill-emerald">LSCache-Style Native Engine</span>
+            <span class="ces-pill ces-pill-emerald">Native Cloud E Engine</span>
         </div>
         <p style="color: #047857; font-size: 13px; line-height: 1.5; margin: 0 0 16px 0;">
             This website is running directly on <strong>Cloud E Panel</strong>. Nginx FastCGI parameters are passed automatically by the web server to PHP-FPM using clean domain resolution. You do not need to configure any raw IPs, ports, or API keys manually.

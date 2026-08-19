@@ -2,7 +2,7 @@
 /**
  * Cloud E Speed — Native Auto-Discovery Engine
  *
- * Handles LiteSpeed-style Zero Configuration by discovering the Cloud E Panel
+ * Handles Native Zero Configuration by discovering the Cloud E Panel
  * FastCGI environment and resolving standard HTTPS clean endpoints without raw IPs or ports.
  *
  * @package CloudESpeed

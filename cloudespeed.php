@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Cloud E Speed — Intelligent FastCGI & Nginx Cache Accelerator
  * Plugin URI: https://github.com/devceerdhg/cloudespeed-wp-plugin
- * Description: Real-time automated cache invalidation engine for Cloud E Panel. Features LiteSpeed-style Zero-Configuration native server auto-discovery, clean domain HTTPS URL resolution (standard port 443, no raw IPs/ports), interactive tabbed Light Theme dashboard, Nginx FastCGI microcache controller, targeted URL invalidation, and WooCommerce turbo sync.
+ * Description: Real-time automated cache invalidation engine for Cloud E Panel. Features Native Zero-Configuration web server auto-discovery, clean domain HTTPS URL resolution (standard port 443, no raw IPs/ports), interactive tabbed Light Theme dashboard, Nginx FastCGI microcache controller, targeted URL invalidation, and WooCommerce turbo sync.
  * Version: 2.5.0
  * Author: Cloud E Tech
  * Author URI: https://cloudetech.org/

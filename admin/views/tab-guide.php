@@ -19,9 +19,9 @@ if (!defined('ABSPATH')) {
     <div style="font-size: 13px; line-height: 1.6; color: var(--ces-text-main);">
         
         <div style="margin-bottom: 24px;">
-            <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">1. Zero-Configuration Native Integration (LiteSpeed Style)</h4>
+            <h4 style="font-size: 15px; margin: 0 0 8px 0; color: #0284C7;">1. Zero-Configuration Native Integration</h4>
             <p style="color: var(--ces-text-muted); margin: 0 0 10px 0;">
-                Just like LiteSpeed Cache communicates natively with OpenLiteSpeed/LSWS, Cloud E Speed connects automatically to Cloud E Panel's Nginx Engine. When installed on any domain hosted on the panel, it detects the web server environment (<code>CLOUDESPEED_ACTIVE</code>) and performs all cache operations via clean HTTPS without requiring raw IPs or port configurations.
+                Cloud E Speed connects automatically to Cloud E Panel's Nginx Web Server Engine. When installed on any domain hosted on the panel, it detects the native web server environment (<code>CLOUDESPEED_ACTIVE</code>) and performs all cache operations via clean HTTPS without requiring raw IPs or port configurations.
             </p>
         </div>
 
